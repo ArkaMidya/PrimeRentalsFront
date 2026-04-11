@@ -74,8 +74,8 @@ const LandingPage = () => {
     <div style={{ padding: '0 1rem', overflowX: 'hidden' }}>
 
       {/* 1. Hero Section */}
-      <motion.section 
-        className="hero-section" 
+      <motion.section
+        className="hero-section"
         style={{ backgroundImage: `url(${heroBg})` }}
         initial="hidden"
         animate="visible"
@@ -90,11 +90,11 @@ const LandingPage = () => {
             Experience the ultimate convenience and affordability with our premium fleet of vehicles. Whether for a weekend getaway or a business trip, we have the perfect ride for you.
           </motion.p>
           <motion.div variants={fadeIn} style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-            <motion.button 
+            <motion.button
               whileHover={{ scale: 1.05, boxShadow: "0px 0px 20px rgba(79, 70, 229, 0.6)" }}
               whileTap={{ scale: 0.95 }}
-              onClick={handleFindRideClick} 
-              className="btn btn-primary" 
+              onClick={handleFindRideClick}
+              className="btn btn-primary"
               style={{ padding: '1rem 3.5rem', fontSize: '1.2rem', borderRadius: '50px' }}
             >
               <FaCar style={{ marginRight: '8px' }} /> Find Your Ride
@@ -104,7 +104,7 @@ const LandingPage = () => {
       </motion.section>
 
       {/* 2. Featured Cars */}
-      <motion.section 
+      <motion.section
         className="section-spacing"
         initial="hidden"
         whileInView="visible"
@@ -114,14 +114,14 @@ const LandingPage = () => {
         <motion.h2 variants={fadeIn} className="section-title"><span>Featured</span> Vehicles</motion.h2>
         <div className="grid-3">
           {featuredCars.map(car => (
-            <motion.div 
-              key={car.id} 
+            <motion.div
+              key={car.id}
               variants={scaleUp}
               whileHover={{ y: -10, boxShadow: "0px 20px 40px rgba(0,0,0,0.5)" }}
-              className="glass-panel image-zoom-container" 
+              className="glass-panel image-zoom-container"
               style={{ padding: 0, display: 'flex', flexDirection: 'column' }}
             >
-              <div 
+              <div
                 className="image-zoom"
                 style={{ height: '220px', width: '100%', backgroundImage: `url(${car.image})`, backgroundSize: 'cover', backgroundPosition: 'center', borderTopLeftRadius: 'var(--radius-lg)', borderTopRightRadius: 'var(--radius-lg)' }}
               ></div>
@@ -138,8 +138,8 @@ const LandingPage = () => {
       </motion.section>
 
       {/* 3. Why Choose Us */}
-      <motion.section 
-        className="section-spacing" 
+      <motion.section
+        className="section-spacing"
         style={{ background: 'rgba(255,255,255,0.02)', margin: '0 -2rem', padding: '5rem 2rem', borderRadius: 'var(--radius-lg)' }}
         initial="hidden"
         whileInView="visible"
@@ -154,16 +154,16 @@ const LandingPage = () => {
             { icon: <FaHeadset />, title: '24/7 Support', desc: 'Our dedicated team is ready to assist you anytime, anywhere.', color: 'rgba(239, 68, 68, 0.2)', iconColor: 'var(--danger)' },
             { icon: <FaTools />, title: 'Well-Maintained', desc: 'Every car undergoes strict quality assurance before rental.', color: 'rgba(245, 158, 11, 0.2)', iconColor: 'var(--warning)' }
           ].map((item, index) => (
-            <motion.div 
+            <motion.div
               key={index}
               variants={slideLeft}
               whileHover={{ scale: 1.05 }}
-              className="glass-panel" 
+              className="glass-panel"
               style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', borderColor: item.color }}
             >
-              <motion.div 
+              <motion.div
                 whileHover={{ rotate: 15, scale: 1.1 }}
-                className="icon-box" 
+                className="icon-box"
                 style={{ background: item.color, color: item.iconColor }}
               >
                 {item.icon}
@@ -176,7 +176,7 @@ const LandingPage = () => {
       </motion.section>
 
       {/* 4. How It Works */}
-      <motion.section 
+      <motion.section
         className="section-spacing"
         initial="hidden"
         whileInView="visible"
@@ -191,11 +191,11 @@ const LandingPage = () => {
             { num: 3, title: 'Book', desc: 'Secure your checkout' },
             { num: 4, title: 'Drive', desc: 'Enjoy the pristine ride!' }
           ].map((step, index) => (
-            <motion.div 
+            <motion.div
               key={index}
               variants={scaleUp}
               whileHover={{ y: -5 }}
-              className="glass-panel step-card" 
+              className="glass-panel step-card"
               style={{ flex: '1 1 200px' }}
             >
               <div className="step-number">{step.num}</div>
@@ -207,7 +207,7 @@ const LandingPage = () => {
       </motion.section>
 
       {/* 5. Testimonials */}
-      <motion.section 
+      <motion.section
         className="section-spacing"
         initial="hidden"
         whileInView="visible"
@@ -221,11 +221,11 @@ const LandingPage = () => {
             { name: 'Michael Chen', role: 'Road Tripper', txt: 'Rented an SUV for a week. Customer service answered my call at 2 AM. Top notch operation!', rating: 5 },
             { name: 'David Reynolds', role: 'Daily Commuter', txt: 'Very transparent pricing and excellent condition of the vehicles. Definitely my go-to rental agency now.', rating: 4 }
           ].map((r, i) => (
-            <motion.div 
+            <motion.div
               key={i}
               variants={fadeIn}
               whileHover={{ scale: 1.03 }}
-              className="glass-panel" 
+              className="glass-panel"
               style={{ padding: '2rem', display: 'flex', flexDirection: 'column' }}
             >
               <div style={{ color: 'var(--warning)', marginBottom: '1.2rem', fontSize: '1.2rem' }}>
@@ -245,23 +245,23 @@ const LandingPage = () => {
       <footer className="footer-section">
         <div className="grid-4" style={{ marginBottom: '3rem' }}>
           <div>
-            <h3 style={{ color: 'var(--primary)', marginBottom: '1rem', fontSize: '1.5rem' }}>Luxe Drive Rentals</h3>
+            <h3 style={{ color: 'var(--primary)', marginBottom: '1rem', fontSize: '1.5rem' }}>PrimeRentals</h3>
             <p className="text-muted" style={{ fontSize: '0.95rem' }}>Redefining exactly what it means to drive in style, anywhere, anytime.</p>
           </div>
-          <div>
+          {/* <div>
             <h4 style={{ marginBottom: '1rem' }}>Quick Links</h4>
             <ul style={{ listStyle: 'none', padding: 0 }}>
               <li style={{ marginBottom: '0.5rem' }}><Link to="/" className="text-muted" style={{ transition: 'color 0.3s' }}>Home</Link></li>
               <li style={{ marginBottom: '0.5rem' }}><Link to="/register" className="text-muted" style={{ transition: 'color 0.3s' }}>Register</Link></li>
               <li style={{ marginBottom: '0.5rem' }}><Link to="/login" className="text-muted" style={{ transition: 'color 0.3s' }}>Login</Link></li>
             </ul>
-          </div>
+          </div> */}
           <div>
             <h4 style={{ marginBottom: '1rem' }}>Contact Info</h4>
             <ul style={{ listStyle: 'none', padding: 0, color: 'var(--text-muted)', fontSize: '0.95rem' }}>
-              <li style={{ marginBottom: '0.8rem' }}>📍 123 Glassmorphism Way, UI City</li>
+              <li style={{ marginBottom: '0.8rem' }}>📍 Sector V, Salt Lake City, Kolkata</li>
               <li style={{ marginBottom: '0.8rem' }}>📞 +1 (800) 123-4567</li>
-              <li style={{ marginBottom: '0.8rem' }}>✉️ contact@luxedrive.com</li>
+              <li style={{ marginBottom: '0.8rem' }}>✉️ primerentals00@gmail.com</li>
             </ul>
           </div>
           <div>
@@ -274,7 +274,7 @@ const LandingPage = () => {
           </div>
         </div>
         <div style={{ textAlign: 'center', paddingTop: '2rem', borderTop: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-          &copy; {new Date().getFullYear()} Luxe Drive Rentals. All rights reserved.
+          &copy; {new Date().getFullYear()} PrimeRentals. All rights reserved.
         </div>
       </footer>
     </div>

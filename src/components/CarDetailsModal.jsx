@@ -10,12 +10,15 @@ const CarDetailsModal = ({ car, onClose }) => {
       top: 0, left: 0, width: '100%', height: '100%',
       backgroundColor: 'rgba(0, 0, 0, 0.7)',
       backdropFilter: 'blur(5px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: 1000
+      display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+      zIndex: 1000,
+      overflowY: 'auto',
+      padding: '2rem 1rem'
     }}>
       <div className="glass-panel animate-fade-in" style={{
-        maxWidth: '700px', width: '90%', maxHeight: '90vh', overflowY: 'auto',
-        position: 'relative'
+        maxWidth: '700px', width: '90%', 
+        position: 'relative',
+        marginBottom: '2rem'
       }}>
         <button 
           onClick={onClose} 

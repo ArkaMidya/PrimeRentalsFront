@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
-import { FaPlus, FaCar, FaList, FaTrash, FaEdit, FaInfoCircle, FaSave, FaTimes, FaWrench, FaChartBar } from 'react-icons/fa';
+import { FaPlus, FaCar, FaList, FaTrash, FaEdit, FaInfoCircle, FaSave, FaTimes, FaWrench, FaChartBar, FaCheckCircle } from 'react-icons/fa';
 import CarDetailsModal from '../components/CarDetailsModal';
 import ServiceHistoryModal from '../components/ServiceHistoryModal';
 import ReportsDashboard from '../components/ReportsDashboard'; // IMPORT REPORTS
@@ -147,6 +147,22 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleCompleteRental = async (rentalId) => {
+    const mileageStr = window.prompt("Enter the total mileage (km) driven during this rental (or 0):", "0");
+    if (mileageStr === null) return; // Cancelled
+
+    try {
+      await api.put(`/rentals/${rentalId}`, {
+        rentalStatus: 'Completed',
+        totalMileage: Number(mileageStr)
+      });
+      alert('Rental marked as Completed and mileage updated!');
+      fetchData();
+    } catch (err) {
+      alert('Error updating rental: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
   // derived state for cars
   const filteredCars = cars.filter(car => {
     // 1. Text Search Filter
@@ -160,8 +176,29 @@ const AdminDashboard = () => {
     if (serviceFilter === 'ALL') return true;
     
     // Status filters
-    if (serviceFilter === 'AVAILABLE') return car.status === 'Available';
-    if (serviceFilter === 'RENTED') return car.status === 'Rented';
+    const todayStatus = new Date();
+    // Resetting time to accurately compare dates.
+    todayStatus.setHours(0, 0, 0, 0);
+
+    const activeCarRentals = rentals.filter(r => (r.carId?._id || r.carId) === car._id && r.rentalStatus === 'Active');
+    
+    const isCurrentlyRented = activeCarRentals.some(r => {
+      const checkOut = new Date(r.checkOutDate);
+      const checkIn = new Date(r.checkInDate);
+      checkOut.setHours(0, 0, 0, 0);
+      checkIn.setHours(23, 59, 59, 999);
+      return checkOut <= todayStatus && todayStatus <= checkIn;
+    });
+
+    const hasUpcoming = activeCarRentals.some(r => {
+      const checkOut = new Date(r.checkOutDate);
+      checkOut.setHours(0,0,0,0);
+      return checkOut > todayStatus;
+    });
+
+    if (serviceFilter === 'AVAILABLE') return !isCurrentlyRented;
+    if (serviceFilter === 'RENTED') return isCurrentlyRented;
+    if (serviceFilter === 'UPCOMING') return hasUpcoming;
 
     // Rental frequency
     if (serviceFilter === 'FREQUENT' || serviceFilter === 'LESS_USED') {
@@ -268,7 +305,7 @@ const AdminDashboard = () => {
                     <input type="number" name="year" className="form-control" value={formData.year} onChange={handleInputChange} required />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <label>Mileage (km/h)</label>
+                    <label>Mileage (km/L)</label>
                     <input type="number" name="mileage" className="form-control" value={formData.mileage} onChange={handleInputChange} />
                   </div>
                 </div>
@@ -366,7 +403,8 @@ const AdminDashboard = () => {
                 <optgroup label="General">
                   <option value="ALL">All Cars</option>
                   <option value="AVAILABLE">Available</option>
-                  <option value="RENTED">Rented</option>
+                  <option value="RENTED">Currently Rented</option>
+                  <option value="UPCOMING">Upcoming Bookings</option>
                 </optgroup>
                 <optgroup label="Utilization">
                   <option value="FREQUENT">Frequently Rented (3+)</option>
@@ -390,20 +428,33 @@ const AdminDashboard = () => {
               <tr style={{ background: 'rgba(255,255,255,0.05)', textAlign: 'left' }}>
                 <th style={{ padding: '1rem' }}>Vehicle</th>
                 <th style={{ padding: '1rem' }}>Status</th>
-                <th style={{ padding: '1rem' }}>Mileage</th>
+                <th style={{ padding: '1rem' }}>Efficiency (km/L)</th>
                 <th style={{ padding: '1rem', textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filteredCars.map(car => (
+              {filteredCars.map(car => {
+                const todayStatus = new Date();
+                todayStatus.setHours(0, 0, 0, 0);
+                const activeCarRentals = rentals.filter(r => (r.carId?._id || r.carId) === car._id && r.rentalStatus === 'Active');
+                const isCurrentlyRented = activeCarRentals.some(r => {
+                  const checkOut = new Date(r.checkOutDate);
+                  const checkIn = new Date(r.checkInDate);
+                  checkOut.setHours(0, 0, 0, 0);
+                  checkIn.setHours(23, 59, 59, 999);
+                  return checkOut <= todayStatus && todayStatus <= checkIn;
+                });
+                const displayStatus = isCurrentlyRented ? 'Rented' : 'Available';
+
+                return (
                 <tr key={car._id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                   <td style={{ padding: '1rem' }}>
                     <strong>{car.make} {car.model}</strong> ({car.year})
                   </td>
                   <td style={{ padding: '1rem' }}>
-                    <span className={`badge badge-${car.status === 'Available' ? 'success' : 'warning'}`}>{car.status}</span>
+                    <span className={`badge badge-${displayStatus === 'Available' ? 'success' : 'warning'}`}>{displayStatus}</span>
                   </td>
-                  <td style={{ padding: '1rem' }}>{car.mileage} km/h</td>
+                  <td style={{ padding: '1rem' }}>{car.mileage} km/L</td>
                   <td style={{ padding: '1rem', textAlign: 'right' }}>
                     <button className="btn btn-outline" style={{ border: 'none', color: '#ffb703' }} title="Manage Service History" onClick={() => setManageServiceCar(car)}>
                       <FaWrench />
@@ -419,7 +470,7 @@ const AdminDashboard = () => {
                     </button>
                   </td>
                 </tr>
-              ))}
+              );})}
             </tbody>
           </table>
           {filteredCars.length === 0 && <p className="text-muted text-center mt-4">No cars matched the filter.</p>}
@@ -431,6 +482,7 @@ const AdminDashboard = () => {
           <table style={{ width: '100%', marginTop: '1rem', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: 'rgba(255,255,255,0.05)', textAlign: 'left' }}>
+                <th style={{ padding: '1rem' }}>Order ID</th>
                 <th style={{ padding: '1rem' }}>Car</th>
                 <th style={{ padding: '1rem' }}>Customer</th>
                 <th style={{ padding: '1rem' }}>Check Out Date</th>
@@ -442,6 +494,7 @@ const AdminDashboard = () => {
             <tbody>
               {rentals.map(rental => (
                 <tr key={rental._id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                  <td style={{ padding: '1rem', fontWeight: 600, color: 'var(--primary)' }}>{rental.bookingId || 'N/A'}</td>
                   <td style={{ padding: '1rem' }}>{rental.carId ? `${rental.carId.make} ${rental.carId.model}` : rental.carName || 'Deleted Vehicle'}</td>
                   <td style={{ padding: '1rem' }}>{rental.userId?.name}</td>
                   <td style={{ padding: '1rem' }}>{new Date(rental.checkOutDate).toLocaleDateString()}</td>
@@ -452,7 +505,19 @@ const AdminDashboard = () => {
                     </span>
                   </td>
                   <td style={{ padding: '1rem' }}>
-                    <span className={`badge badge-${rental.rentalStatus === 'Completed' ? 'success' : 'primary'}`}>{rental.rentalStatus}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.5rem' }}>
+                      <span className={`badge badge-${rental.rentalStatus === 'Completed' ? 'success' : 'primary'}`}>{rental.rentalStatus}</span>
+                      {rental.rentalStatus === 'Active' && new Date() >= new Date(rental.checkInDate) && (
+                        <button 
+                          className="btn btn-outline" 
+                          style={{ border: 'none', color: 'var(--success)', padding: 0, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }} 
+                          onClick={() => handleCompleteRental(rental._id)}
+                          title="Mark as Completed"
+                        >
+                          <FaCheckCircle /> Check-In
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
