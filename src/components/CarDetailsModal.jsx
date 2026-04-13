@@ -1,27 +1,44 @@
 import React from 'react';
+import ReactDOM from 'react-dom';
 import { FaTimes, FaCarSide, FaCogs, FaShieldAlt, FaTachometerAlt } from 'react-icons/fa';
 
 const CarDetailsModal = ({ car, onClose }) => {
   if (!car) return null;
 
-  return (
+  // Prevent body scroll when modal is open
+  React.useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+
+  return ReactDOM.createPortal(
     <div style={{
       position: 'fixed',
-      top: 0, left: 0, width: '100%', height: '100%',
-      backgroundColor: 'rgba(0, 0, 0, 0.7)',
-      backdropFilter: 'blur(5px)',
-      display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
-      zIndex: 1000,
-      overflowY: 'auto',
-      padding: '2rem 1rem'
+      top: 0, left: 0, width: '100vw', height: '100vh',
+      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      backdropFilter: 'blur(10px)',
+      zIndex: 5000,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
     }}>
-      <div className="glass-panel animate-fade-in" style={{
-        maxWidth: '700px', width: '90%', 
+      <div className="animate-fade-in" style={{
+        maxWidth: '850px',
+        width: '95%',
+        maxHeight: '90vh',
+        overflowY: 'auto',
         position: 'relative',
-        marginBottom: '2rem'
+        background: 'var(--surface)', // Use solid surface to avoid hover issues from glass-panel
+        border: '1px solid var(--glass-border)',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+        borderRadius: '32px',
+        padding: '3rem',
+        margin: 'auto'
       }}>
-        <button 
-          onClick={onClose} 
+        <button
+          onClick={onClose}
           style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.5rem' }}
         >
           <FaTimes />
@@ -30,12 +47,17 @@ const CarDetailsModal = ({ car, onClose }) => {
         <h2 style={{ color: 'var(--primary)', marginBottom: '0.5rem' }}>
           {car.make} {car.model}
         </h2>
-        <p className="text-muted" style={{ marginBottom: '1.5rem', fontWeight: 500 }}>
-          Year of Buying: {car.year}
-        </p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <p className="text-muted" style={{ margin: 0, fontWeight: 500 }}>
+            Year of Buying: {car.year}
+          </p>
+          <div style={{ background: 'rgba(40, 167, 69, 0.1)', color: 'var(--success)', padding: '0.4rem 0.8rem', borderRadius: '20px', fontWeight: 'bold', border: '1px solid var(--success)' }}>
+            ₹{car.rentPerDay} / Day
+          </div>
+        </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
-          
+
           <div>
             <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--secondary)' }}>
               <FaCarSide /> Description
@@ -69,7 +91,7 @@ const CarDetailsModal = ({ car, onClose }) => {
                 <strong>Key Parts Condition:</strong>
                 <ul style={{ marginLeft: '1.2rem', fontSize: '0.9rem' }}>
                   {car.partsDetails.map((p, i) => (
-                    <li key={i}>{p.partName}: <em style={{color: 'var(--warning)'}}>{p.condition}</em></li>
+                    <li key={i}>{p.partName}: <em style={{ color: 'var(--warning)' }}>{p.condition}</em></li>
                   ))}
                 </ul>
               </div>
@@ -83,7 +105,7 @@ const CarDetailsModal = ({ car, onClose }) => {
             <div style={{ marginTop: '0.5rem' }}>
               <strong>Servicing Details:</strong>
               <p style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>{car.servicingDetails || 'Regularly maintained.'}</p>
-              
+
               {car.serviceHistory && car.serviceHistory.length > 0 && (
                 <p style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: 'var(--success)' }}>
                   <strong>Last Serviced On:</strong> {new Date(Math.max(...car.serviceHistory.map(s => new Date(s.serviceDate).getTime()))).toLocaleDateString()}
@@ -101,7 +123,8 @@ const CarDetailsModal = ({ car, onClose }) => {
 
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

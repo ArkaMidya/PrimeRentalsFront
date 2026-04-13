@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
-import { FaSearch, FaCheckCircle, FaInfoCircle, FaCar, FaFilter, FaTachometerAlt, FaTools, FaHistory, FaTimes } from 'react-icons/fa';
+import { FaSearch, FaCheckCircle, FaInfoCircle, FaCar, FaFilter, FaTachometerAlt, FaTools, FaHistory, FaTimes, FaMoneyBillWave } from 'react-icons/fa';
 import CarDetailsModal from '../components/CarDetailsModal';
 import RentalBookingModal from '../components/RentalBookingModal';
 
@@ -15,7 +15,8 @@ const CustomerDashboard = () => {
     search: '',
     mileageRange: '',
     maintenance: '',
-    usage: ''
+    usage: '',
+    rentRange: ''
   });
 
   useEffect(() => {
@@ -29,6 +30,7 @@ const CustomerDashboard = () => {
       if (filters.mileageRange) queryParams.append('mileageRange', filters.mileageRange);
       if (filters.maintenance) queryParams.append('maintenance', filters.maintenance);
       if (filters.usage) queryParams.append('usage', filters.usage);
+      if (filters.rentRange) queryParams.append('rentRange', filters.rentRange);
 
       const [{ data: carsData }, { data: rentalsData }, { data: bookedDatesData }] = await Promise.all([
         api.get(`/cars?${queryParams.toString()}`),
@@ -50,10 +52,41 @@ const CustomerDashboard = () => {
   };
 
   const clearFilters = () => {
-    setFilters({ search: '', mileageRange: '', maintenance: '', usage: '' });
+    setFilters({ search: '', mileageRange: '', maintenance: '', usage: '', rentRange: '' });
   };
 
   const availableCars = cars.filter(c => c.status !== 'Servicing');
+
+  const handleCancelBooking = async (rental) => {
+    const pickupDate = new Date(rental.checkOutDate);
+    if (rental.pickupTime) {
+      const [hours, minutes] = rental.pickupTime.split(':').map(Number);
+      pickupDate.setHours(hours, minutes, 0, 0);
+    }
+
+    const now = new Date();
+    const timeDiffHours = (pickupDate - now) / (1000 * 60 * 60);
+
+    let confirmMsg = "";
+    if (timeDiffHours >= 24) {
+      confirmMsg = "Are you sure you want to cancel this booking? 15% will be deducted as per the cancellation policy (85% refund).";
+    } else if (timeDiffHours >= 0) {
+      confirmMsg = "Are you sure you want to cancel this booking? No refund will be provided as the pickup is within 24 hours.";
+    } else {
+      alert("Cannot cancel a booking that has already passed its pickup time.");
+      return;
+    }
+
+    if (window.confirm(confirmMsg)) {
+      try {
+        await api.post(`/rentals/cancel-booking/${rental.bookingId}`);
+        alert("Booking cancelled successfully!");
+        fetchData();
+      } catch (err) {
+        alert("Cancellation failed: " + (err.response?.data?.message || err.message));
+      }
+    }
+  };
 
   if (loading) return <div className="text-center mt-4">Loading Customer Dashboard...</div>;
 
@@ -68,57 +101,90 @@ const CustomerDashboard = () => {
             {/* <h3 style={{ margin: 0 }}><FaSearch /> Available Vehicles</h3> */}
 
             {/* Filter Toolbar */}
-            <div className="glass-panel" style={{ padding: '0.75rem 1.5rem', display: 'flex', gap: '1.2rem', alignItems: 'center', flexWrap: 'wrap', borderRadius: '15px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', position: 'relative' }}>
-                <FaSearch style={{ position: 'absolute', left: '0.8rem', color: 'var(--text-muted)' }} />
+            <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.2rem', borderRadius: '20px', width: '100%' }}>
+              {/* Row 1: Full-Width Search */}
+              <div style={{ position: 'relative', width: '100%' }}>
+                <FaSearch style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '1.1rem' }} />
                 <input
                   type="text"
                   name="search"
                   value={filters.search}
                   onChange={handleFilterChange}
-                  placeholder="Search Maker, Model..."
+                  placeholder="Search cars by brand, model...."
                   className="form-control"
-                  style={{ padding: '0.4rem 0.8rem 0.4rem 2.2rem', fontSize: '0.85rem', width: '350px', background: 'rgba(0,0,0,0.1)' }}
+                  style={{
+                    padding: '0.8rem 1rem 0.8rem 2.8rem',
+                    fontSize: '1rem',
+                    width: '100%',
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '12px'
+                  }}
                 />
               </div>
 
-              <div style={{ height: '24px', width: '1px', background: 'var(--border-color)' }}></div>
+              {/* Row 2: Categorized Filters */}
+              <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <FaMoneyBillWave style={{ color: 'var(--success)' }} />
+                  <select name="rentRange" value={filters.rentRange} onChange={handleFilterChange} className="form-control" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', width: 'auto', background: 'transparent', minWidth: '160px' }}>
+                    <option value="">All Price Ranges</option>
+                    <option value="low">Budget (&lt; ₹2000)</option>
+                    <option value="medium">Standard (₹2000-3000)</option>
+                    <option value="high">Premium (&gt; ₹3000)</option>
+                  </select>
+                </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <FaTachometerAlt style={{ color: 'var(--primary)' }} />
-                <select name="mileageRange" value={filters.mileageRange} onChange={handleFilterChange} className="form-control" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', width: 'auto', background: 'transparent' }}>
-                  <option value="">All Mileage</option>
-                  <option value="high">Good (24 - 35+ km/L)</option>
-                  <option value="medium">Average (18 - 23 km/L)</option>
-                  <option value="low">Poor (Below 18 km/L)</option>
+                <div style={{ height: '24px', width: '1px', background: 'var(--border-color)' }}></div>
 
-                </select>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <FaTachometerAlt style={{ color: 'var(--primary)' }} />
+                  <select name="mileageRange" value={filters.mileageRange} onChange={handleFilterChange} className="form-control" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', width: 'auto', background: 'transparent' }}>
+                    <option value="">All Mileage</option>
+                    <option value="high">Good (24 - 35+ km/L)</option>
+                    <option value="medium">Average (18 - 23 km/L)</option>
+                    <option value="low">Poor (Below 18 km/L)</option>
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <FaTools style={{ color: 'var(--secondary)' }} />
+                  <select name="maintenance" value={filters.maintenance} onChange={handleFilterChange} className="form-control" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', width: 'auto', background: 'transparent' }}>
+                    <option value="">All Maintenance</option>
+                    <option value="recent">Recently Serviced</option>
+                    <option value="old">Not Recently Serviced</option>
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <FaHistory style={{ color: 'var(--warning)' }} />
+                  <select name="usage" value={filters.usage} onChange={handleFilterChange} className="form-control" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', width: 'auto', background: 'transparent' }}>
+                    <option value="">All Usage Levels</option>
+                    <option value="low">Low Used (0-5)</option>
+                    <option value="medium">Medium Used (5-15)</option>
+                    <option value="high">High Used (15+)</option>
+                  </select>
+                </div>
+
+                {(filters.search || filters.mileageRange || filters.maintenance || filters.usage || filters.rentRange) && (
+                  <button
+                    onClick={clearFilters}
+                    className="btn btn-outline"
+                    style={{
+                      padding: '0.5rem 1rem',
+                      fontSize: '0.9rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      marginLeft: 'auto',
+                      color: 'var(--danger)',
+                      borderColor: 'rgba(220, 53, 69, 0.2)'
+                    }}
+                  >
+                    <FaTimes /> Reset All Filters
+                  </button>
+                )}
               </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <FaTools style={{ color: 'var(--secondary)' }} />
-                <select name="maintenance" value={filters.maintenance} onChange={handleFilterChange} className="form-control" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', width: 'auto', background: 'transparent' }}>
-                  <option value="">All Maintenance</option>
-                  <option value="recent">Recently Serviced</option>
-                  <option value="old">Not Recently Serviced</option>
-                </select>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <FaHistory style={{ color: 'var(--warning)' }} />
-                <select name="usage" value={filters.usage} onChange={handleFilterChange} className="form-control" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', width: 'auto', background: 'transparent' }}>
-                  <option value="">All Usage</option>
-                  <option value="low">Low Used (0-5)</option>
-                  <option value="medium">Medium Used (5-15)</option>
-                  <option value="high">High Used (15+)</option>
-                </select>
-              </div>
-
-              {(filters.search || filters.mileageRange || filters.maintenance || filters.usage) && (
-                <button onClick={clearFilters} className="btn btn-outline" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem', border: 'none', color: 'var(--danger)' }}>
-                  <FaTimes /> Clear
-                </button>
-              )}
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
@@ -155,25 +221,31 @@ const CustomerDashboard = () => {
               return (
                 <div key={car._id} className="glass-panel" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', minHeight: '350px', justifyContent: 'space-between' }}>
                   <div>
-                    <div style={{ fontSize: '2.5rem', color: 'var(--primary)', marginBottom: '1rem', opacity: 0.8 }}>
+                    <div style={{ fontSize: '2.5rem', color: 'var(--primary)', marginBottom: '.5rem', opacity: 0.8 }}>
                       <FaCar />
                     </div>
                     <h4 style={{ fontSize: '1.4rem', marginBottom: '0.75rem', color: 'var(--text-main)' }}>{car.make} {car.model}</h4>
-                    <div style={{ marginBottom: '1.25rem' }}>
+                    <div style={{ marginBottom: '.25rem' }}>
                       <span style={badgeStyle}>{badgeText}</span>
                     </div>
                   </div>
 
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', margin: '1rem 0' }}>
-                    <p className="text-muted" style={{ fontSize: '1rem', fontWeight: 500 }}>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                    {/* <p className="text-muted" style={{ fontSize: '1rem', fontWeight: 500 }}>
                       Year: <span style={{ color: 'var(--secondary)' }}>{car.year}</span>
-                    </p>
-                    <p className="text-muted" style={{ fontSize: '0.9rem', marginTop: '0.75rem', lineHeight: '1.5' }}>
+                      
+                    </p> */}
+                    <div style={{ margin: '0.75rem 0' }}>
+                      <div style={{ background: 'rgba(40, 167, 69, 0.1)', color: 'var(--success)', padding: '0.4rem 0.8rem', borderRadius: '20px', fontWeight: 'bold', border: '1px solid var(--success)', display: 'inline-block' }}>
+                        ₹{car.rentPerDay} / Day
+                      </div>
+                    </div>
+                    {/* <p className="text-muted" style={{ fontSize: '0.9rem', marginTop: '0.5rem', lineHeight: '1.5' }}>
                       {car.description ? (car.description.length > 80 ? car.description.substring(0, 80) + '...' : car.description) : 'Experience ultimate luxury and performance with this premium vehicle selection.'}
-                    </p>
+                    </p> */}
                   </div>
 
-                  <div style={{ display: 'flex', gap: '1rem', marginTop: 'auto', width: '100%' }}>
+                  <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', width: '100%' }}>
                     <button
                       className="btn btn-outline"
                       style={{ flex: 1, padding: '0.75rem' }}
@@ -205,40 +277,59 @@ const CustomerDashboard = () => {
           <h3>My Active & Past Rentals</h3>
           {myRentals.length === 0 ? (
             <p className="mt-4 text-muted">You haven't rented any cars yet.</p>
-          ) : (
-            <table style={{ width: '100%', marginTop: '1rem', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ background: 'rgba(255,255,255,0.05)', textAlign: 'left' }}>
-                  <th style={{ padding: '1rem' }}>Order ID</th>
-                  <th style={{ padding: '1rem' }}>Car</th>
-                  <th style={{ padding: '1rem' }}>Rented On</th>
-                  <th style={{ padding: '1rem' }}>Pick-up Time</th>
-                  <th style={{ padding: '1rem' }}>Expected Return</th>
-                  <th style={{ padding: '1rem' }}>Payment Mode</th>
-                  <th style={{ padding: '1rem' }}>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {myRentals.map(rental => (
-                  <tr key={rental._id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                    <td style={{ padding: '1rem', fontWeight: 600, color: 'var(--primary)' }}>{rental.bookingId || 'N/A'}</td>
-                    <td style={{ padding: '1rem' }}>{rental.carId ? `${rental.carId.make} ${rental.carId.model}` : rental.carName || 'Deleted Vehicle'}</td>
-                    <td style={{ padding: '1rem' }}>{new Date(rental.checkOutDate).toLocaleDateString()}</td>
-                    <td style={{ padding: '1rem' }}>{rental.pickupTime || 'N/A'}</td>
-                    <td style={{ padding: '1rem' }}>{new Date(rental.checkInDate).toLocaleDateString()}</td>
-                    <td style={{ padding: '1rem' }}>
-                      <span style={{ fontWeight: 600, color: 'var(--text-color)' }}>
-                        {rental.paymentMethod || 'N/A'}
-                      </span>
-                    </td>
-                    <td style={{ padding: '1rem' }}>
-                      <span className={`badge badge-${rental.rentalStatus === 'Completed' ? 'success' : 'primary'}`}>{rental.rentalStatus}</span>
-                    </td>
+          ) : (() => {
+            const hasActive = myRentals.some(r => r.rentalStatus === 'Active');
+            return (
+              <table style={{ width: '100%', marginTop: '1rem', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: 'rgba(255,255,255,0.05)', textAlign: 'left' }}>
+                    <th style={{ padding: '1rem' }}>Order ID</th>
+                    <th style={{ padding: '1rem' }}>Car</th>
+                    <th style={{ padding: '1rem' }}>Rented On</th>
+                    <th style={{ padding: '1rem' }}>Pick-up Time</th>
+                    <th style={{ padding: '1rem' }}>Expected Return</th>
+                    <th style={{ padding: '1rem' }}>Payment Mode</th>
+                    <th style={{ padding: '1rem', textAlign: 'center' }}>Status</th>
+                    {hasActive && <th style={{ padding: '1rem', textAlign: 'center' }}>Actions</th>}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+                </thead>
+                <tbody>
+                  {myRentals.map(rental => (
+                    <tr key={rental._id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                      <td style={{ padding: '1rem', fontWeight: 600, color: 'var(--primary)' }}>{rental.bookingId || 'N/A'}</td>
+                      <td style={{ padding: '1rem' }}>{rental.carId ? `${rental.carId.make} ${rental.carId.model}` : rental.carName || 'Deleted Vehicle'}</td>
+                      <td style={{ padding: '1rem' }}>{new Date(rental.checkOutDate).toLocaleDateString()}</td>
+                      <td style={{ padding: '1rem' }}>{rental.pickupTime || 'N/A'}</td>
+                      <td style={{ padding: '1rem' }}>{new Date(rental.checkInDate).toLocaleDateString()}</td>
+                      <td style={{ padding: '1rem' }}>
+                        <span style={{ fontWeight: 600, color: 'var(--text-color)' }}>
+                          {rental.paymentMethod || 'N/A'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '1rem', textAlign: 'center' }}>
+                        <span className={`badge badge-${rental.rentalStatus === 'Completed' || rental.rentalStatus === 'Refunded' ? 'success' : rental.rentalStatus.startsWith('CANCELLED') ? 'danger' : 'primary'}`}>
+                          {rental.rentalStatus === 'Refunded' ? 'REFUND COMPLETED' : rental.rentalStatus.replace(/_/g, ' ')}
+                        </span>
+                      </td>
+                      {hasActive && (
+                        <td style={{ padding: '1rem', textAlign: 'right' }}>
+                          {rental.rentalStatus === 'Active' && (
+                            <button
+                              className="btn btn-outline"
+                              style={{ color: 'var(--danger)', borderColor: 'var(--danger)', padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}
+                              onClick={() => handleCancelBooking(rental)}
+                            >
+                              <FaTimes /> Cancel Booking
+                            </button>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            );
+          })()}
         </div>
       </div>
 

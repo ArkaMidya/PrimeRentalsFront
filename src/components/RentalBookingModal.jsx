@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ReactDOM from 'react-dom';
 import { FaTimes, FaCreditCard, FaCheckCircle, FaSpinner, FaMapMarkerAlt, FaCalendarAlt, FaArrowLeft } from 'react-icons/fa';
 import api from '../api/axios';
 
@@ -37,10 +38,10 @@ const RentalBookingModal = ({ car, onClose, onSuccess }) => {
     const start = new Date(formData.checkOutDate);
     const end = new Date(formData.checkInDate);
     if (isNaN(start) || isNaN(end)) return 0;
-    
+
     const diffTime = end - start;
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays > 0 ? diffDays : 1; 
+    return diffDays > 0 ? diffDays : 1;
   };
 
   const handleCalculate = (e) => {
@@ -48,7 +49,7 @@ const RentalBookingModal = ({ car, onClose, onSuccess }) => {
     // Construct requestedCheckOut using local time to avoid timezone offsets
     const [coYear, coMonth, coDay] = formData.checkOutDate.split('-').map(Number);
     const requestedCheckOut = new Date(coYear, coMonth - 1, coDay);
-    
+
     if (formData.pickupTime) {
       const [hours, minutes] = formData.pickupTime.split(':').map(Number);
       requestedCheckOut.setHours(hours, minutes, 0, 0);
@@ -59,8 +60,8 @@ const RentalBookingModal = ({ car, onClose, onSuccess }) => {
 
     const now = new Date();
     // Allow a 10-minute grace period to account for the time spent filling the form
-    const gracePeriod = 10 * 60 * 1000; 
-    
+    const gracePeriod = 10 * 60 * 1000;
+
     if (requestedCheckOut < (now - gracePeriod)) {
       alert("Check-out date/time cannot be in the past.");
       return;
@@ -83,14 +84,14 @@ const RentalBookingModal = ({ car, onClose, onSuccess }) => {
     }
 
     const days = calculateDays();
-    const cost = (1500 * days) + (70 * days);
+    const cost = (car.rentPerDay * days) + (70 * days);
     setTotalCost(cost);
     setStep(2);
   };
 
   const executeFakePayment = () => {
     setIsProcessing(true);
-    
+
     // Simulate fake processing latency
     setTimeout(async () => {
       try {
@@ -104,10 +105,10 @@ const RentalBookingModal = ({ car, onClose, onSuccess }) => {
           totalCost: totalCost,
           paymentMethod: paymentMethod // Track how the transaction was cleared
         });
-        
+
         setIsProcessing(false);
         setStep(4); // Success Screen
-        
+
         // Auto-close after 2 seconds
         setTimeout(() => {
           onSuccess();
@@ -118,21 +119,31 @@ const RentalBookingModal = ({ car, onClose, onSuccess }) => {
         alert(err.response?.data?.message || 'Error processing payment and rental.');
         setStep(1); // Go back if error
       }
-    }, 2500);
+    }, 2000);
   };
 
-  return (
+  // Prevent body scroll when modal is open
+  React.useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+
+  return ReactDOM.createPortal(
     <div style={{
-      position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-      backgroundColor: 'rgba(0, 0, 0, 0.75)', backdropFilter: 'blur(5px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000
+      position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+      backgroundColor: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(10px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 5000
     }}>
-      <div className="glass-panel animate-fade-in" style={{
-        maxWidth: '750px', width: '90%', position: 'relative'
+      <div className="animate-fade-in" style={{
+        maxWidth: '850px', width: '95%', maxHeight: '90vh', overflowY: 'auto', position: 'relative',
+        background: 'var(--surface)', border: '1px solid var(--glass-border)',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', borderRadius: '32px', padding: '3rem'
       }}>
         {step !== 4 && (
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             style={{ position: 'absolute', top: '1rem', left: '1rem', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
           >
             <FaArrowLeft /> Back
@@ -144,7 +155,7 @@ const RentalBookingModal = ({ car, onClose, onSuccess }) => {
           <div>
             <h2 style={{ color: 'var(--primary)', marginBottom: '1.5rem', marginTop: '1rem', textAlign: 'center' }}>Book {car.make} {car.model}</h2>
             <form onSubmit={handleCalculate}>
-              
+
               <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}><FaMapMarkerAlt /> Routing</h4>
               <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                 <div className="form-group" style={{ flex: '1 1 200px' }}>
@@ -156,7 +167,7 @@ const RentalBookingModal = ({ car, onClose, onSuccess }) => {
                   <input type="text" className="form-control" name="destinationLocation" value={formData.destinationLocation} onChange={handleInputChange} required placeholder="Enter drop-off address" />
                 </div>
               </div>
-              
+
               <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1.5rem', marginBottom: '1rem' }}><FaCalendarAlt /> Dates & Time</h4>
               <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                 <div className="form-group" style={{ flex: '1 1 200px' }}>
@@ -198,7 +209,7 @@ const RentalBookingModal = ({ car, onClose, onSuccess }) => {
         {step === 2 && (
           <div>
             <h2 style={{ color: 'var(--primary)', marginBottom: '1.5rem', marginTop: '1rem', textAlign: 'center' }}>Booking Summary</h2>
-            
+
             <div style={{ background: 'rgba(255,255,255,0.05)', padding: '1.5rem', borderRadius: '10px', marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <span>Car:</span> <strong>{car.make} {car.model}</strong>
@@ -207,14 +218,14 @@ const RentalBookingModal = ({ car, onClose, onSuccess }) => {
                 <span>Days:</span> <strong>{calculateDays()} Days</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span>Base Rent (₹1500/day):</span> <strong>₹{1500 * calculateDays()}</strong>
+                <span>Base Rent (₹{car.rentPerDay}/day):</span> <strong>₹{car.rentPerDay * calculateDays()}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
                 <span>Servicing Charge (₹70/day):</span> <strong>₹{70 * calculateDays()}</strong>
               </div>
-              
+
               <hr style={{ borderColor: 'rgba(255,255,255,0.1)', marginBottom: '1rem' }} />
-              
+
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.5rem', color: 'var(--success)' }}>
                 <span>Total Amount:</span> <strong>₹{totalCost}</strong>
               </div>
@@ -235,17 +246,17 @@ const RentalBookingModal = ({ car, onClose, onSuccess }) => {
         {step === 3 && (
           <div>
             <h2 style={{ color: 'var(--primary)', marginBottom: '1.5rem', marginTop: '1rem', textAlign: 'center' }}>Select Payment Method</h2>
-            
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1.2rem', marginBottom: '2rem' }}>
               {[
-                { id: 'Cash', icon: '💵', label: 'Cash' },
+                // { id: 'Cash', icon: '💵', label: 'Cash' },
                 { id: 'Credit/Debit Card', icon: '💳', label: 'Credit / Debit Card' },
                 { id: 'UPI', icon: '📱', label: 'UPI' },
                 { id: 'Net Banking', icon: '🏦', label: 'Net Banking' }
               ].map(method => {
                 const isSelected = paymentMethod === method.id;
                 return (
-                  <div 
+                  <div
                     key={method.id}
                     onClick={() => setPaymentMethod(method.id)}
                     onMouseEnter={(e) => {
@@ -264,11 +275,11 @@ const RentalBookingModal = ({ car, onClose, onSuccess }) => {
                       display: 'flex',
                       alignItems: 'center',
                       gap: '1rem',
-                      padding: '1.5rem', 
+                      padding: '1.5rem',
                       background: isSelected ? 'rgba(0, 123, 255, 0.08)' : '#ffffff',
                       border: isSelected ? '2px solid #007bff' : '2px solid transparent',
-                      borderRadius: '12px', 
-                      cursor: 'pointer', 
+                      borderRadius: '12px',
+                      cursor: 'pointer',
                       transition: 'all 0.3s ease',
                       boxShadow: isSelected ? '0 8px 20px rgba(0,123,255,0.2)' : '0 4px 6px rgba(0,0,0,0.1)',
                       color: isSelected ? '#007bff' : '#333333',
@@ -315,7 +326,8 @@ const RentalBookingModal = ({ car, onClose, onSuccess }) => {
         )}
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

@@ -57,7 +57,7 @@ const LandingPage = () => {
       make: 'Porsche',
       model: '911 Carrera',
       year: 2022,
-      price: 3200,
+      price: 3000,
       image: 'https://images.unsplash.com/photo-1695328478607-bcd371587e7b?w=800&q=80'
     },
     {

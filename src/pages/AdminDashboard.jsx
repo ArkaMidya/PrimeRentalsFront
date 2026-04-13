@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { FaPlus, FaCar, FaList, FaTrash, FaEdit, FaInfoCircle, FaSave, FaTimes, FaWrench, FaChartBar, FaCheckCircle } from 'react-icons/fa';
 import CarDetailsModal from '../components/CarDetailsModal';
@@ -6,6 +7,7 @@ import ServiceHistoryModal from '../components/ServiceHistoryModal';
 import ReportsDashboard from '../components/ReportsDashboard'; // IMPORT REPORTS
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('FLEET'); // High-level navigation state
 
   const [cars, setCars] = useState([]);
@@ -26,6 +28,7 @@ const AdminDashboard = () => {
     make: '', model: '', year: '', description: '', mileage: '',
     engineType: '', engineCapacity: '', engineHp: '',
     servicingDetails: '',
+    rentPerDay: '',
     insuranceReg: '', insuranceExp: '', insuranceProv: ''
   });
 
@@ -75,6 +78,7 @@ const AdminDashboard = () => {
       make: '', model: '', year: '', description: '', mileage: '',
       engineType: '', engineCapacity: '', engineHp: '',
       servicingDetails: '',
+      rentPerDay: '',
       insuranceReg: '', insuranceExp: '', insuranceProv: ''
     });
     setParts([]);
@@ -90,6 +94,7 @@ const AdminDashboard = () => {
       engineCapacity: car.engineDetails?.capacity || '',
       engineHp: car.engineDetails?.hp || '',
       servicingDetails: car.servicingDetails || '',
+      rentPerDay: car.rentPerDay || '',
       insuranceReg: car.insurance?.registrationNumber || '',
       insuranceExp: car.insurance?.expirationDate ? new Date(car.insurance.expirationDate).toISOString().split('T')[0] : '',
       insuranceProv: car.insurance?.provider || ''
@@ -106,6 +111,7 @@ const AdminDashboard = () => {
       model: formData.model,
       year: Number(formData.year),
       description: formData.description,
+      rentPerDay: Number(formData.rentPerDay) || 0,
       mileage: Number(formData.mileage) || 0,
       servicingDetails: formData.servicingDetails,
       engineDetails: {
@@ -163,6 +169,10 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleProcessRefund = (rental) => {
+    navigate(`/admin/refund/${rental.bookingId}`);
+  };
+
   // derived state for cars
   const filteredCars = cars.filter(car => {
     // 1. Text Search Filter
@@ -174,14 +184,14 @@ const AdminDashboard = () => {
     }
 
     if (serviceFilter === 'ALL') return true;
-    
+
     // Status filters
     const todayStatus = new Date();
     // Resetting time to accurately compare dates.
     todayStatus.setHours(0, 0, 0, 0);
 
     const activeCarRentals = rentals.filter(r => (r.carId?._id || r.carId) === car._id && r.rentalStatus === 'Active');
-    
+
     const isCurrentlyRented = activeCarRentals.some(r => {
       const checkOut = new Date(r.checkOutDate);
       const checkIn = new Date(r.checkInDate);
@@ -192,7 +202,7 @@ const AdminDashboard = () => {
 
     const hasUpcoming = activeCarRentals.some(r => {
       const checkOut = new Date(r.checkOutDate);
-      checkOut.setHours(0,0,0,0);
+      checkOut.setHours(0, 0, 0, 0);
       return checkOut > todayStatus;
     });
 
@@ -249,15 +259,15 @@ const AdminDashboard = () => {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-        <button 
-          className="btn" 
+        <button
+          className="btn"
           style={{ padding: '0.8rem 2rem', border: activeTab === 'FLEET' ? '2px solid var(--primary)' : '2px solid transparent', background: activeTab === 'FLEET' ? 'rgba(255,183,3,0.1)' : 'transparent', color: activeTab === 'FLEET' ? 'var(--primary)' : 'var(--text-muted)' }}
           onClick={() => setActiveTab('FLEET')}
         >
           <FaCar /> Fleet Management
         </button>
-        <button 
-          className="btn" 
+        <button
+          className="btn"
           style={{ padding: '0.8rem 2rem', border: activeTab === 'REPORTS' ? '2px solid var(--primary)' : '2px solid transparent', background: activeTab === 'REPORTS' ? 'rgba(255,183,3,0.1)' : 'transparent', color: activeTab === 'REPORTS' ? 'var(--primary)' : 'var(--text-muted)' }}
           onClick={() => setActiveTab('REPORTS')}
         >
@@ -268,276 +278,312 @@ const AdminDashboard = () => {
       {activeTab === 'REPORTS' ? (
         <ReportsDashboard cars={cars} rentals={rentals} />
       ) : (
-      <>
-        <h1 className="mb-4 text-center" style={{ color: 'var(--primary)' }}>Admin Command Center</h1>
-        
-        {!showCarForm && (
-          <div className="text-center mb-4">
-            <button className="btn btn-primary" onClick={() => setShowCarForm(true)}>
-              <FaPlus /> Register New Vehicle
-            </button>
-          </div>
-        )}
+        <>
+          <h1 className="mb-4 text-center" style={{ color: 'var(--primary)' }}>Admin Command Center</h1>
 
-        {showCarForm && (
-        <div className="glass-panel animate-fade-in" style={{ marginBottom: '2rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2>{editModeId ? 'Update Vehicle' : 'Register New Vehicle'}</h2>
-            <button className="btn btn-outline" onClick={resetForm}><FaTimes /> Cancel</button>
-          </div>
-          <form onSubmit={handleSubmitCar} style={{ marginTop: '1.5rem' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
-              
-              {/* Basic Info */}
-              <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '8px' }}>
-                <h4>Basic Info</h4>
-                <div className="form-group mt-4">
-                  <label>Make</label>
-                  <input type="text" name="make" className="form-control" value={formData.make} onChange={handleInputChange} required />
-                </div>
-                <div className="form-group">
-                  <label>Model</label>
-                  <input type="text" name="model" className="form-control" value={formData.model} onChange={handleInputChange} required />
-                </div>
-                <div className="form-group" style={{ display: 'flex', gap: '1rem' }}>
-                  <div style={{ flex: 1 }}>
-                    <label>Year</label>
-                    <input type="number" name="year" className="form-control" value={formData.year} onChange={handleInputChange} required />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <label>Mileage (km/L)</label>
-                    <input type="number" name="mileage" className="form-control" value={formData.mileage} onChange={handleInputChange} />
-                  </div>
-                </div>
-                <div className="form-group">
-                  <label>Description</label>
-                  <textarea name="description" className="form-control" value={formData.description} onChange={handleInputChange} rows="3" />
-                </div>
-              </div>
-
-              {/* Engine & Servicing */}
-              <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '8px' }}>
-                <h4>Engine Details</h4>
-                <div className="form-group mt-4">
-                  <label>Engine Type (e.g. V6, V8, Electric)</label>
-                  <input type="text" name="engineType" className="form-control" value={formData.engineType} onChange={handleInputChange} />
-                </div>
-                <div className="form-group" style={{ display: 'flex', gap: '1rem' }}>
-                  <div style={{ flex: 1 }}>
-                    <label>Capacity</label>
-                    <input type="text" name="engineCapacity" className="form-control" value={formData.engineCapacity} onChange={handleInputChange} placeholder="e.g. 2.0L" />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <label>Horsepower</label>
-                    <input type="number" name="engineHp" className="form-control" value={formData.engineHp} onChange={handleInputChange} />
-                  </div>
-                </div>
-
-                <h4 style={{ marginTop: '1.5rem' }}>Servicing Info</h4>
-                <div className="form-group mt-4">
-                  <label>Initial Servicing Details & Notes</label>
-                  <textarea name="servicingDetails" className="form-control" value={formData.servicingDetails} onChange={handleInputChange} rows="3" />
-                </div>
-              </div>
-
-              {/* Insurance & Parts */}
-              <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '8px' }}>
-                <h4>Insurance</h4>
-                <div className="form-group mt-4">
-                  <label>Registration Number</label>
-                  <input type="text" name="insuranceReg" className="form-control" value={formData.insuranceReg} onChange={handleInputChange} />
-                </div>
-                <div className="form-group">
-                  <label>Expiration Date</label>
-                  <input type="date" name="insuranceExp" className="form-control" value={formData.insuranceExp} onChange={handleInputChange} />
-                </div>
-                <div className="form-group">
-                  <label>Provider</label>
-                  <input type="text" name="insuranceProv" className="form-control" value={formData.insuranceProv} onChange={handleInputChange} />
-                </div>
-
-                <h4 style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                  Parts Info 
-                  <button type="button" className="btn btn-outline" style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem' }} onClick={handleAddPart}>+ Add Part</button>
-                </h4>
-                {parts.map((p, idx) => (
-                  <div key={idx} style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                    <input type="text" placeholder="Part Name" className="form-control" value={p.partName} onChange={e => updatePart(idx, 'partName', e.target.value)} style={{ flex: 1 }} />
-                    <input type="text" placeholder="Condition" className="form-control" value={p.condition} onChange={e => updatePart(idx, 'condition', e.target.value)} style={{ flex: 1 }} />
-                    <button type="button" className="btn btn-danger" onClick={() => removePart(idx)}><FaTimes /></button>
-                  </div>
-                ))}
-              </div>
-
-            </div>
-            <div className="text-center mt-4">
-              <button type="submit" className="btn btn-secondary" style={{ padding: '1rem 3rem', fontSize: '1.1rem' }}>
-                <FaSave /> {editModeId ? 'Save Changes' : 'Submit New Vehicle Info'}
+          {!showCarForm && (
+            <div className="text-center mb-4">
+              <button className="btn btn-primary" onClick={() => setShowCarForm(true)}>
+                <FaPlus /> Register New Vehicle
               </button>
             </div>
-          </form>
-        </div>
-      )}
+          )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem' }}>
-        
-        {/* Fleet Overview */}
-        <div className="glass-panel" style={{ gridColumn: '1 / -1' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-            <h3><FaCar /> Fleet Overview</h3>
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-              <input 
-                type="text" 
-                className="form-control" 
-                placeholder="Search by Make..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ background: 'var(--bg-color)', color: 'var(--text-color)', maxWidth: '200px' }}
-              />
-              <select 
-                className="form-control" 
-                style={{ width: 'auto', background: 'var(--bg-color)', color: 'var(--text-color)' }}
-                value={serviceFilter}
-                onChange={(e) => setServiceFilter(e.target.value)}
-              >
-                <optgroup label="General">
-                  <option value="ALL">All Cars</option>
-                  <option value="AVAILABLE">Available</option>
-                  <option value="RENTED">Currently Rented</option>
-                  <option value="UPCOMING">Upcoming Bookings</option>
-                </optgroup>
-                <optgroup label="Utilization">
-                  <option value="FREQUENT">Frequently Rented (3+)</option>
-                  <option value="LESS_USED">Less Used (&lt;3)</option>
-                </optgroup>
-                <optgroup label="Maintenance">
-                  <option value="RECENT">Recently Serviced (Last 30 Days)</option>
-                  <option value="OVERDUE">Overdue for Service (&gt;6 Months or None)</option>
-                </optgroup>
-                <optgroup label="Insurance">
-                  <option value="INSURANCE_VALID">Valid Insurance</option>
-                  <option value="INSURANCE_EXPIRING_SOON">Expiring Soon (&lt;1 Month)</option>
-                  <option value="INSURANCE_EXPIRED">Expired Insurance</option>
-                </optgroup>
-              </select>
+          {showCarForm && (
+            <div className="glass-panel animate-fade-in" style={{ marginBottom: '2rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h2>{editModeId ? 'Update Vehicle' : 'Register New Vehicle'}</h2>
+                <button className="btn btn-outline" onClick={resetForm}><FaTimes /> Cancel</button>
+              </div>
+              <form onSubmit={handleSubmitCar} style={{ marginTop: '1.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+
+                  {/* Basic Info */}
+                  <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '8px' }}>
+                    <h4>Basic Info</h4>
+                    <div className="form-group mt-4">
+                      <label>Make</label>
+                      <input type="text" name="make" className="form-control" value={formData.make} onChange={handleInputChange} required />
+                    </div>
+                    <div className="form-group">
+                      <label>Model</label>
+                      <input type="text" name="model" className="form-control" value={formData.model} onChange={handleInputChange} required />
+                    </div>
+                    <div className="form-group" style={{ display: 'flex', gap: '1rem' }}>
+                      <div style={{ flex: 1 }}>
+                        <label>Year</label>
+                        <input type="number" name="year" className="form-control" value={formData.year} onChange={handleInputChange} required />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <label>Mileage (km/L)</label>
+                        <input type="number" name="mileage" className="form-control" value={formData.mileage} onChange={handleInputChange} />
+                      </div>
+                    </div>
+                    <div className="form-group">
+                      <label>Description</label>
+                      <textarea name="description" className="form-control" value={formData.description} onChange={handleInputChange} rows="3" />
+                    </div>
+                  </div>
+
+                  {/* Engine & Servicing */}
+                  <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '8px' }}>
+                    <h4>Engine Details</h4>
+                    <div className="form-group mt-4">
+                      <label>Engine Type (e.g. V6, V8, Electric)</label>
+                      <input type="text" name="engineType" className="form-control" value={formData.engineType} onChange={handleInputChange} />
+                    </div>
+                    <div className="form-group" style={{ display: 'flex', gap: '1rem' }}>
+                      <div style={{ flex: 1 }}>
+                        <label>Capacity</label>
+                        <input type="text" name="engineCapacity" className="form-control" value={formData.engineCapacity} onChange={handleInputChange} placeholder="e.g. 2.0L" />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <label>Horsepower</label>
+                        <input type="number" name="engineHp" className="form-control" value={formData.engineHp} onChange={handleInputChange} />
+                      </div>
+                    </div>
+
+                    <h4 style={{ marginTop: '1.5rem' }}>Servicing Info</h4>
+                    <div className="form-group mt-4">
+                      <label>Initial Servicing Details & Notes</label>
+                      <textarea name="servicingDetails" className="form-control" value={formData.servicingDetails} onChange={handleInputChange} rows="3" />
+                    </div>
+                  </div>
+
+                  {/* Insurance & Parts */}
+                  <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '8px' }}>
+                    <h4>Insurance</h4>
+                    <div className="form-group mt-4">
+                      <label>Registration Number</label>
+                      <input type="text" name="insuranceReg" className="form-control" value={formData.insuranceReg} onChange={handleInputChange} />
+                    </div>
+                    <div className="form-group">
+                      <label>Expiration Date</label>
+                      <input type="date" name="insuranceExp" className="form-control" value={formData.insuranceExp} onChange={handleInputChange} />
+                    </div>
+                    <div className="form-group">
+                      <label>Provider</label>
+                      <input type="text" name="insuranceProv" className="form-control" value={formData.insuranceProv} onChange={handleInputChange} />
+                    </div>
+
+                    <div className="form-group" style={{ marginTop: '1.5rem' }}>
+                      <label style={{ color: 'var(--success)', fontWeight: 'bold' }}>Per Day Rent (₹)</label>
+                      <input
+                        type="number"
+                        name="rentPerDay"
+                        className="form-control"
+                        value={formData.rentPerDay}
+                        onChange={handleInputChange}
+                        placeholder="e.g. 1500"
+                        required
+                        style={{ border: '2px solid var(--success)', background: 'rgba(40, 167, 69, 0.05)' }}
+                      />
+                    </div>
+
+                    <h4 style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                      Parts Info
+                      <button type="button" className="btn btn-outline" style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem' }} onClick={handleAddPart}>+ Add Part</button>
+                    </h4>
+                    {parts.map((p, idx) => (
+                      <div key={idx} style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                        <input type="text" placeholder="Part Name" className="form-control" value={p.partName} onChange={e => updatePart(idx, 'partName', e.target.value)} style={{ flex: 1 }} />
+                        <input type="text" placeholder="Condition" className="form-control" value={p.condition} onChange={e => updatePart(idx, 'condition', e.target.value)} style={{ flex: 1 }} />
+                        <button type="button" className="btn btn-danger" onClick={() => removePart(idx)}><FaTimes /></button>
+                      </div>
+                    ))}
+                  </div>
+
+                </div>
+                <div className="text-center mt-4">
+                  <button type="submit" className="btn btn-secondary" style={{ padding: '1rem 3rem', fontSize: '1.1rem' }}>
+                    <FaSave /> {editModeId ? 'Save Changes' : 'Submit New Vehicle Info'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem' }}>
+
+            {/* Fleet Overview */}
+            <div className="glass-panel" style={{ gridColumn: '1 / -1' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                <h3><FaCar /> Fleet Overview</h3>
+                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Search by Make..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={{ background: 'var(--bg-color)', color: 'var(--text-color)', maxWidth: '200px' }}
+                  />
+                  <select
+                    className="form-control"
+                    style={{ width: 'auto', background: 'var(--bg-color)', color: 'var(--text-color)' }}
+                    value={serviceFilter}
+                    onChange={(e) => setServiceFilter(e.target.value)}
+                  >
+                    <optgroup label="General">
+                      <option value="ALL">All Cars</option>
+                      <option value="AVAILABLE">Available</option>
+                      <option value="RENTED">Currently Rented</option>
+                      <option value="UPCOMING">Upcoming Bookings</option>
+                    </optgroup>
+                    <optgroup label="Utilization">
+                      <option value="FREQUENT">Frequently Rented (3+)</option>
+                      <option value="LESS_USED">Less Used (&lt;3)</option>
+                    </optgroup>
+                    <optgroup label="Maintenance">
+                      <option value="RECENT">Recently Serviced (Last 30 Days)</option>
+                      <option value="OVERDUE">Overdue for Service (&gt;6 Months or None)</option>
+                    </optgroup>
+                    <optgroup label="Insurance">
+                      <option value="INSURANCE_VALID">Valid Insurance</option>
+                      <option value="INSURANCE_EXPIRING_SOON">Expiring Soon (&lt;1 Month)</option>
+                      <option value="INSURANCE_EXPIRED">Expired Insurance</option>
+                    </optgroup>
+                  </select>
+                </div>
+              </div>
+
+              <table style={{ width: '100%', marginTop: '1rem', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: 'rgba(255,255,255,0.05)', textAlign: 'left' }}>
+                    <th style={{ padding: '1rem' }}>Vehicle</th>
+                    <th style={{ padding: '1rem' }}>Status</th>
+                    <th style={{ padding: '1rem' }}>Efficiency (km/L)</th>
+                    <th style={{ padding: '1rem' }}>Rent / Day</th>
+                    <th style={{ padding: '1rem', textAlign: 'center' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredCars.map(car => {
+                    const todayStatus = new Date();
+                    todayStatus.setHours(0, 0, 0, 0);
+                    const activeCarRentals = rentals.filter(r => (r.carId?._id || r.carId) === car._id && r.rentalStatus === 'Active');
+                    const isCurrentlyRented = activeCarRentals.some(r => {
+                      const checkOut = new Date(r.checkOutDate);
+                      const checkIn = new Date(r.checkInDate);
+                      checkOut.setHours(0, 0, 0, 0);
+                      checkIn.setHours(23, 59, 59, 999);
+                      return checkOut <= todayStatus && todayStatus <= checkIn;
+                    });
+                    const displayStatus = isCurrentlyRented ? 'Rented' : 'Available';
+
+                    return (
+                      <tr key={car._id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                        <td style={{ padding: '1rem' }}>
+                          <strong>{car.make} {car.model}</strong> ({car.year})
+                        </td>
+                        <td style={{ padding: '1rem' }}>
+                          <span className={`badge badge-${displayStatus === 'Available' ? 'success' : 'warning'}`}>{displayStatus}</span>
+                        </td>
+                        <td style={{ padding: '1rem' }}>{car.mileage} km/L</td>
+                        <td style={{ padding: '1rem' }}>
+                          <div style={{ color: 'var(--success)', fontWeight: 'bold' }}>₹{car.rentPerDay}</div>
+                        </td>
+                        <td style={{ padding: '1rem', textAlign: 'right' }}>
+                          <button className="btn btn-outline" style={{ border: 'none', color: '#ffb703' }} title="Manage Service History" onClick={() => setManageServiceCar(car)}>
+                            <FaWrench />
+                          </button>
+                          <button className="btn btn-outline" style={{ border: 'none', color: 'var(--secondary)' }} title="View Details" onClick={() => setSelectedCar(car)}>
+                            <FaInfoCircle />
+                          </button>
+                          <button className="btn btn-outline" style={{ border: 'none', color: 'var(--primary)' }} title="Edit Car" onClick={() => handleOpenEdit(car)}>
+                            <FaEdit />
+                          </button>
+                          <button className="btn btn-outline" style={{ border: 'none', color: 'var(--danger)' }} title="Delete Car" onClick={() => handleDeleteCar(car._id)}>
+                            <FaTrash />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {filteredCars.length === 0 && <p className="text-muted text-center mt-4">No cars matched the filter.</p>}
+            </div>
+
+            {/* Recent Rentals */}
+            <div className="glass-panel" style={{ gridColumn: '1 / -1' }}>
+              <h3><FaList /> System-wide Active & Past Rentals</h3>
+              <table style={{ width: '100%', marginTop: '1rem', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: 'rgba(255,255,255,0.05)', textAlign: 'left' }}>
+                    <th style={{ padding: '1rem' }}>Order ID</th>
+                    <th style={{ padding: '1rem' }}>Car</th>
+                    <th style={{ padding: '1rem' }}>Customer</th>
+                    <th style={{ padding: '1rem' }}>Check Out Date</th>
+                    <th style={{ padding: '1rem' }}>Pick-up Time</th>
+                    <th style={{ padding: '1rem' }}>Payment Mode</th>
+                    <th style={{ padding: '1rem' }}>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rentals.map(rental => (
+                    <tr key={rental._id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                      <td style={{ padding: '1rem', fontWeight: 600, color: 'var(--primary)' }}>{rental.bookingId || 'N/A'}</td>
+                      <td style={{ padding: '1rem' }}>{rental.carId ? `${rental.carId.make} ${rental.carId.model}` : rental.carName || 'Deleted Vehicle'}</td>
+                      <td style={{ padding: '1rem' }}>{rental.userId?.name}</td>
+                      <td style={{ padding: '1rem' }}>{new Date(rental.checkOutDate).toLocaleDateString()}</td>
+                      <td style={{ padding: '1rem' }}>{rental.pickupTime || 'N/A'}</td>
+                      <td style={{ padding: '1rem' }}>
+                        <span style={{ fontWeight: 600, color: 'var(--text-color)' }}>
+                          {rental.paymentMethod || 'N/A'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '1rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.5rem' }}>
+                          <span className={`badge badge-${rental.rentalStatus === 'Completed' ? 'success' : rental.rentalStatus.startsWith('CANCELLED') ? 'danger' : 'primary'}`}>{rental.rentalStatus.replace(/_/g, ' ')}</span>
+
+                          {rental.rentalStatus === 'Active' && new Date() >= new Date(rental.checkInDate) && (
+                            <button
+                              className="btn btn-outline"
+                              style={{ border: 'none', color: 'var(--success)', padding: 0, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                              onClick={() => handleCompleteRental(rental._id)}
+                              title="Mark as Completed"
+                            >
+                              <FaCheckCircle /> Check-In
+                            </button>
+                          )}
+
+                          {rental.rentalStatus === 'CANCELLED_WITH_REFUND' && (
+                            <button
+                              className="btn btn-primary"
+                              style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem' }}
+                              onClick={() => handleProcessRefund(rental)}
+                            >
+                              Process Refund (₹{rental.refundAmount})
+                            </button>
+                          )}
+
+                          {rental.rentalStatus === 'CANCELLED_NO_REFUND' && (
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                              Cancelled within 24h – No refund
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {rentals.length === 0 && <p className="text-center mt-4 text-muted">No rentals recorded.</p>}
             </div>
           </div>
-          
-          <table style={{ width: '100%', marginTop: '1rem', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: 'rgba(255,255,255,0.05)', textAlign: 'left' }}>
-                <th style={{ padding: '1rem' }}>Vehicle</th>
-                <th style={{ padding: '1rem' }}>Status</th>
-                <th style={{ padding: '1rem' }}>Efficiency (km/L)</th>
-                <th style={{ padding: '1rem', textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredCars.map(car => {
-                const todayStatus = new Date();
-                todayStatus.setHours(0, 0, 0, 0);
-                const activeCarRentals = rentals.filter(r => (r.carId?._id || r.carId) === car._id && r.rentalStatus === 'Active');
-                const isCurrentlyRented = activeCarRentals.some(r => {
-                  const checkOut = new Date(r.checkOutDate);
-                  const checkIn = new Date(r.checkInDate);
-                  checkOut.setHours(0, 0, 0, 0);
-                  checkIn.setHours(23, 59, 59, 999);
-                  return checkOut <= todayStatus && todayStatus <= checkIn;
-                });
-                const displayStatus = isCurrentlyRented ? 'Rented' : 'Available';
 
-                return (
-                <tr key={car._id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                  <td style={{ padding: '1rem' }}>
-                    <strong>{car.make} {car.model}</strong> ({car.year})
-                  </td>
-                  <td style={{ padding: '1rem' }}>
-                    <span className={`badge badge-${displayStatus === 'Available' ? 'success' : 'warning'}`}>{displayStatus}</span>
-                  </td>
-                  <td style={{ padding: '1rem' }}>{car.mileage} km/L</td>
-                  <td style={{ padding: '1rem', textAlign: 'right' }}>
-                    <button className="btn btn-outline" style={{ border: 'none', color: '#ffb703' }} title="Manage Service History" onClick={() => setManageServiceCar(car)}>
-                      <FaWrench />
-                    </button>
-                    <button className="btn btn-outline" style={{ border: 'none', color: 'var(--secondary)' }} title="View Details" onClick={() => setSelectedCar(car)}>
-                      <FaInfoCircle />
-                    </button>
-                    <button className="btn btn-outline" style={{ border: 'none', color: 'var(--primary)' }} title="Edit Car" onClick={() => handleOpenEdit(car)}>
-                      <FaEdit />
-                    </button>
-                    <button className="btn btn-outline" style={{ border: 'none', color: 'var(--danger)' }} title="Delete Car" onClick={() => handleDeleteCar(car._id)}>
-                      <FaTrash />
-                    </button>
-                  </td>
-                </tr>
-              );})}
-            </tbody>
-          </table>
-          {filteredCars.length === 0 && <p className="text-muted text-center mt-4">No cars matched the filter.</p>}
-        </div>
+          {selectedCar && <CarDetailsModal car={selectedCar} onClose={() => setSelectedCar(null)} />}
 
-        {/* Recent Rentals */}
-        <div className="glass-panel" style={{ gridColumn: '1 / -1' }}>
-          <h3><FaList /> System-wide Active & Past Rentals</h3>
-          <table style={{ width: '100%', marginTop: '1rem', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: 'rgba(255,255,255,0.05)', textAlign: 'left' }}>
-                <th style={{ padding: '1rem' }}>Order ID</th>
-                <th style={{ padding: '1rem' }}>Car</th>
-                <th style={{ padding: '1rem' }}>Customer</th>
-                <th style={{ padding: '1rem' }}>Check Out Date</th>
-                <th style={{ padding: '1rem' }}>Pick-up Time</th>
-                <th style={{ padding: '1rem' }}>Payment Mode</th>
-                <th style={{ padding: '1rem' }}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rentals.map(rental => (
-                <tr key={rental._id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                  <td style={{ padding: '1rem', fontWeight: 600, color: 'var(--primary)' }}>{rental.bookingId || 'N/A'}</td>
-                  <td style={{ padding: '1rem' }}>{rental.carId ? `${rental.carId.make} ${rental.carId.model}` : rental.carName || 'Deleted Vehicle'}</td>
-                  <td style={{ padding: '1rem' }}>{rental.userId?.name}</td>
-                  <td style={{ padding: '1rem' }}>{new Date(rental.checkOutDate).toLocaleDateString()}</td>
-                  <td style={{ padding: '1rem' }}>{rental.pickupTime || 'N/A'}</td>
-                  <td style={{ padding: '1rem' }}>
-                    <span style={{ fontWeight: 600, color: 'var(--text-color)' }}>
-                      {rental.paymentMethod || 'N/A'}
-                    </span>
-                  </td>
-                  <td style={{ padding: '1rem' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.5rem' }}>
-                      <span className={`badge badge-${rental.rentalStatus === 'Completed' ? 'success' : 'primary'}`}>{rental.rentalStatus}</span>
-                      {rental.rentalStatus === 'Active' && new Date() >= new Date(rental.checkInDate) && (
-                        <button 
-                          className="btn btn-outline" 
-                          style={{ border: 'none', color: 'var(--success)', padding: 0, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }} 
-                          onClick={() => handleCompleteRental(rental._id)}
-                          title="Mark as Completed"
-                        >
-                          <FaCheckCircle /> Check-In
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {rentals.length === 0 && <p className="text-center mt-4 text-muted">No rentals recorded.</p>}
-        </div>
-      </div>
+          {manageServiceCar && (
+            <ServiceHistoryModal
+              car={manageServiceCar}
+              onClose={() => setManageServiceCar(null)}
+              onUpdate={onServiceUpdate}
+            />
+          )}
 
-      {selectedCar && <CarDetailsModal car={selectedCar} onClose={() => setSelectedCar(null)} />}
-      
-      {manageServiceCar && (
-        <ServiceHistoryModal 
-          car={manageServiceCar} 
-          onClose={() => setManageServiceCar(null)} 
-          onUpdate={onServiceUpdate}
-        />
-      )}
-      
-      </>
+        </>
       )} {/* <-- Closing the activeTab ternary block */}
     </div>
   );

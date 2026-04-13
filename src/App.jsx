@@ -8,6 +8,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import CustomerDashboard from './pages/CustomerDashboard';
 import LandingPage from './pages/LandingPage';
 import ForgotPassword from './pages/ForgotPassword';
+import RefundPage from './pages/RefundPage';
 
 const PrivateRoute = ({ children, role }) => {
   const { user } = useContext(AuthContext);
@@ -35,6 +36,12 @@ const App = () => {
             <Route path="/admin/*" element={
               <PrivateRoute role="Admin">
                 <AdminDashboard />
+              </PrivateRoute>
+            } />
+
+            <Route path="/admin/refund/:bookingId" element={
+              <PrivateRoute role="Admin">
+                <RefundPage />
               </PrivateRoute>
             } />
 
