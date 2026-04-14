@@ -4,6 +4,7 @@ import api from '../api/axios';
 import { FaPlus, FaCar, FaList, FaTrash, FaEdit, FaInfoCircle, FaSave, FaTimes, FaWrench, FaChartBar, FaCheckCircle } from 'react-icons/fa';
 import CarDetailsModal from '../components/CarDetailsModal';
 import ServiceHistoryModal from '../components/ServiceHistoryModal';
+import RentalDetailsModal from '../components/RentalDetailsModal';
 import ReportsDashboard from '../components/ReportsDashboard'; // IMPORT REPORTS
 
 const AdminDashboard = () => {
@@ -15,6 +16,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [selectedCar, setSelectedCar] = useState(null);
   const [manageServiceCar, setManageServiceCar] = useState(null); // Service History Modal
+  const [viewingRental, setViewingRental] = useState(null);
 
   // Filter state
   const [serviceFilter, setServiceFilter] = useState('ALL');
@@ -514,8 +516,7 @@ const AdminDashboard = () => {
                     <th style={{ padding: '1rem' }}>Order ID</th>
                     <th style={{ padding: '1rem' }}>Car</th>
                     <th style={{ padding: '1rem' }}>Customer</th>
-                    <th style={{ padding: '1rem' }}>Check Out Date</th>
-                    <th style={{ padding: '1rem' }}>Pick-up Time</th>
+                    <th style={{ padding: '1rem', textAlign: 'center' }}>Details</th>
                     <th style={{ padding: '1rem' }}>Payment Mode</th>
                     <th style={{ padding: '1rem' }}>Status</th>
                   </tr>
@@ -526,8 +527,15 @@ const AdminDashboard = () => {
                       <td style={{ padding: '1rem', fontWeight: 600, color: 'var(--primary)' }}>{rental.bookingId || 'N/A'}</td>
                       <td style={{ padding: '1rem' }}>{rental.carId ? `${rental.carId.make} ${rental.carId.model}` : rental.carName || 'Deleted Vehicle'}</td>
                       <td style={{ padding: '1rem' }}>{rental.userId?.name}</td>
-                      <td style={{ padding: '1rem' }}>{new Date(rental.checkOutDate).toLocaleDateString()}</td>
-                      <td style={{ padding: '1rem' }}>{rental.pickupTime || 'N/A'}</td>
+                      <td style={{ padding: '1rem', textAlign: 'center' }}>
+                        <button
+                          className="btn btn-outline"
+                          style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem', margin: '0 auto' }}
+                          onClick={() => setViewingRental(rental)}
+                        >
+                          <FaInfoCircle /> Details
+                        </button>
+                      </td>
                       <td style={{ padding: '1rem' }}>
                         <span style={{ fontWeight: 600, color: 'var(--text-color)' }}>
                           {rental.paymentMethod || 'N/A'}
@@ -580,6 +588,13 @@ const AdminDashboard = () => {
               car={manageServiceCar}
               onClose={() => setManageServiceCar(null)}
               onUpdate={onServiceUpdate}
+            />
+          )}
+
+          {viewingRental && (
+            <RentalDetailsModal
+              rental={viewingRental}
+              onClose={() => setViewingRental(null)}
             />
           )}
 

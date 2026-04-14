@@ -9,6 +9,7 @@ const RentalBookingModal = ({ car, onClose, onSuccess }) => {
     checkOutDate: '',
     checkInDate: '',
     pickupTime: '', // Added pickupTime
+    phone: '',
     sourceLocation: '',
     destinationLocation: ''
   });
@@ -100,6 +101,7 @@ const RentalBookingModal = ({ car, onClose, onSuccess }) => {
           checkOutDate: formData.checkOutDate,
           checkInDate: formData.checkInDate,
           pickupTime: formData.pickupTime, // Added pickupTime to payload
+          phone: formData.phone,
           sourceLocation: formData.sourceLocation,
           destinationLocation: formData.destinationLocation,
           totalCost: totalCost,
@@ -159,12 +161,16 @@ const RentalBookingModal = ({ car, onClose, onSuccess }) => {
               <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}><FaMapMarkerAlt /> Routing</h4>
               <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                 <div className="form-group" style={{ flex: '1 1 200px' }}>
-                  <label>Source Address</label>
+                  <label>Pickup Location</label>
                   <input type="text" className="form-control" name="sourceLocation" value={formData.sourceLocation} onChange={handleInputChange} required placeholder="Enter pickup address" />
                 </div>
                 <div className="form-group" style={{ flex: '1 1 200px' }}>
                   <label>Destination Address</label>
                   <input type="text" className="form-control" name="destinationLocation" value={formData.destinationLocation} onChange={handleInputChange} required placeholder="Enter drop-off address" />
+                </div>
+                <div className="form-group" style={{ flex: '1 1 200px' }}>
+                  <label>Contact Phone Number</label>
+                  <input type="tel" className="form-control" name="phone" value={formData.phone} onChange={handleInputChange} required placeholder="e.g. +91 98765 43210" />
                 </div>
               </div>
 
@@ -211,6 +217,9 @@ const RentalBookingModal = ({ car, onClose, onSuccess }) => {
             <h2 style={{ color: 'var(--primary)', marginBottom: '1.5rem', marginTop: '1rem', textAlign: 'center' }}>Booking Summary</h2>
 
             <div style={{ background: 'rgba(255,255,255,0.05)', padding: '1.5rem', borderRadius: '10px', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span>Pickup Point:</span> <strong>{formData.sourceLocation}</strong>
+              </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <span>Car:</span> <strong>{car.make} {car.model}</strong>
               </div>

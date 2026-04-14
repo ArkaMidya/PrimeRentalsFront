@@ -3,6 +3,7 @@ import api from '../api/axios';
 import { FaSearch, FaCheckCircle, FaInfoCircle, FaCar, FaFilter, FaTachometerAlt, FaTools, FaHistory, FaTimes, FaMoneyBillWave } from 'react-icons/fa';
 import CarDetailsModal from '../components/CarDetailsModal';
 import RentalBookingModal from '../components/RentalBookingModal';
+import RentalDetailsModal from '../components/RentalDetailsModal';
 
 const CustomerDashboard = () => {
   const [cars, setCars] = useState([]);
@@ -10,6 +11,7 @@ const CustomerDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [selectedCar, setSelectedCar] = useState(null);
   const [bookingCar, setBookingCar] = useState(null);
+  const [viewingRental, setViewingRental] = useState(null);
   const [allBookedDates, setAllBookedDates] = useState({});
   const [filters, setFilters] = useState({
     search: '',
@@ -285,9 +287,7 @@ const CustomerDashboard = () => {
                   <tr style={{ background: 'rgba(255,255,255,0.05)', textAlign: 'left' }}>
                     <th style={{ padding: '1rem' }}>Order ID</th>
                     <th style={{ padding: '1rem' }}>Car</th>
-                    <th style={{ padding: '1rem' }}>Rented On</th>
-                    <th style={{ padding: '1rem' }}>Pick-up Time</th>
-                    <th style={{ padding: '1rem' }}>Expected Return</th>
+                    <th style={{ padding: '1rem', textAlign: 'center' }}>Information</th>
                     <th style={{ padding: '1rem' }}>Payment Mode</th>
                     <th style={{ padding: '1rem', textAlign: 'center' }}>Status</th>
                     {hasActive && <th style={{ padding: '1rem', textAlign: 'center' }}>Actions</th>}
@@ -298,9 +298,15 @@ const CustomerDashboard = () => {
                     <tr key={rental._id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                       <td style={{ padding: '1rem', fontWeight: 600, color: 'var(--primary)' }}>{rental.bookingId || 'N/A'}</td>
                       <td style={{ padding: '1rem' }}>{rental.carId ? `${rental.carId.make} ${rental.carId.model}` : rental.carName || 'Deleted Vehicle'}</td>
-                      <td style={{ padding: '1rem' }}>{new Date(rental.checkOutDate).toLocaleDateString()}</td>
-                      <td style={{ padding: '1rem' }}>{rental.pickupTime || 'N/A'}</td>
-                      <td style={{ padding: '1rem' }}>{new Date(rental.checkInDate).toLocaleDateString()}</td>
+                      <td style={{ padding: '1rem', textAlign: 'center' }}>
+                        <button
+                          className="btn btn-outline"
+                          style={{ padding: '0.4rem 1rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: '0 auto' }}
+                          onClick={() => setViewingRental(rental)}
+                        >
+                          <FaInfoCircle /> Rent Details
+                        </button>
+                      </td>
                       <td style={{ padding: '1rem' }}>
                         <span style={{ fontWeight: 600, color: 'var(--text-color)' }}>
                           {rental.paymentMethod || 'N/A'}
@@ -347,6 +353,13 @@ const CustomerDashboard = () => {
             setBookingCar(null);
             fetchData();
           }}
+        />
+      )}
+      {/* Rental Details Modal */}
+      {viewingRental && (
+        <RentalDetailsModal
+          rental={viewingRental}
+          onClose={() => setViewingRental(null)}
         />
       )}
     </div>
