@@ -192,7 +192,7 @@ const AdminDashboard = () => {
     // Resetting time to accurately compare dates.
     todayStatus.setHours(0, 0, 0, 0);
 
-    const activeCarRentals = rentals.filter(r => (r.carId?._id || r.carId) === car._id && r.rentalStatus === 'Active');
+    const activeCarRentals = rentals.filter(r => (r.carId?._id || r.carId) === car._id && ['Active', 'Confirmed'].includes(r.rentalStatus));
 
     const isCurrentlyRented = activeCarRentals.some(r => {
       const checkOut = new Date(r.checkOutDate);
@@ -463,7 +463,7 @@ const AdminDashboard = () => {
                   {filteredCars.map(car => {
                     const todayStatus = new Date();
                     todayStatus.setHours(0, 0, 0, 0);
-                    const activeCarRentals = rentals.filter(r => (r.carId?._id || r.carId) === car._id && r.rentalStatus === 'Active');
+                    const activeCarRentals = rentals.filter(r => (r.carId?._id || r.carId) === car._id && ['Active', 'Confirmed'].includes(r.rentalStatus));
                     const isCurrentlyRented = activeCarRentals.some(r => {
                       const checkOut = new Date(r.checkOutDate);
                       const checkIn = new Date(r.checkInDate);
@@ -543,18 +543,40 @@ const AdminDashboard = () => {
                       </td>
                       <td style={{ padding: '1rem' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.5rem' }}>
-                          <span className={`badge badge-${rental.rentalStatus === 'Completed' ? 'success' : rental.rentalStatus.startsWith('CANCELLED') ? 'danger' : 'primary'}`}>{rental.rentalStatus.replace(/_/g, ' ')}</span>
+                          <span className={`badge badge-${(rental.rentalStatus === 'Completed' || rental.rentalStatus === 'Refunded') ? 'success' : rental.rentalStatus.startsWith('CANCELLED') ? 'danger' : 'primary'}`}>
+                            {rental.rentalStatus === 'Refunded' ? 'Refunded' : rental.rentalStatus.replace(/_/g, ' ')}
+                          </span>
 
-                          {rental.rentalStatus === 'Active' && new Date() >= new Date(rental.checkInDate) && (
-                            <button
-                              className="btn btn-outline"
-                              style={{ border: 'none', color: 'var(--success)', padding: 0, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
-                              onClick={() => handleCompleteRental(rental._id)}
-                              title="Mark as Completed"
-                            >
-                              <FaCheckCircle /> Check-In
-                            </button>
-                          )}
+                          {(() => {
+                            let canComplete = false;
+                            if (rental.rentalStatus === 'Active' || rental.rentalStatus === 'Confirmed') {
+                              const checkInD = new Date(rental.checkInDate);
+                              const nowD = new Date();
+                              if (nowD >= checkInD) {
+                                const isSameDay = new Date(rental.checkOutDate).toDateString() === checkInD.toDateString();
+                                if (isSameDay && rental.pickupTime) {
+                                  const [hrs, mins] = rental.pickupTime.split(':').map(Number);
+                                  const pickupDt = new Date(rental.checkOutDate);
+                                  pickupDt.setHours(hrs, mins, 0, 0);
+                                  if (nowD.getTime() > pickupDt.getTime() + (60 * 1000 * 60)) {
+                                    canComplete = true;
+                                  }
+                                } else {
+                                  canComplete = true;
+                                }
+                              }
+                            }
+                            return canComplete && (
+                              <button
+                                className="btn btn-outline"
+                                style={{ border: 'none', color: 'var(--success)', padding: 0, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                                onClick={() => handleCompleteRental(rental._id)}
+                                title="Mark as Completed"
+                              >
+                                <FaCheckCircle /> Check-In
+                              </button>
+                            );
+                          })()}
 
                           {rental.rentalStatus === 'CANCELLED_WITH_REFUND' && (
                             <button

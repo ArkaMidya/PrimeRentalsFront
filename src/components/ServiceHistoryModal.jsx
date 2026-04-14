@@ -72,8 +72,8 @@ const ServiceHistoryModal = ({ car, onClose, onUpdate }) => {
         maxWidth: '800px', width: '90%', maxHeight: '90vh', overflowY: 'auto',
         position: 'relative', padding: '2rem'
       }}>
-        <button 
-          onClick={onClose} 
+        <button
+          onClick={onClose}
           style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.5rem' }}
         >
           <FaTimes />
@@ -102,7 +102,7 @@ const ServiceHistoryModal = ({ car, onClose, onUpdate }) => {
                   <td style={{ padding: '0.75rem' }}>{new Date(record.serviceDate).toLocaleDateString()}</td>
                   <td style={{ padding: '0.75rem' }}>{record.description}</td>
                   <td style={{ padding: '0.75rem' }}>{record.serviceCenter}</td>
-                  <td style={{ padding: '0.75rem' }}>${record.cost}</td>
+                  <td style={{ padding: '0.75rem' }}>₹{record.cost}</td>
                   <td style={{ padding: '0.75rem', textAlign: 'center' }}>
                     <button className="btn btn-outline" style={{ padding: '0.3rem 0.6rem', marginRight: '0.5rem', borderColor: 'var(--primary)', color: 'var(--primary)' }} onClick={() => handleEditClick(record)}>
                       <FaEdit />
@@ -135,7 +135,7 @@ const ServiceHistoryModal = ({ car, onClose, onUpdate }) => {
               <input type="text" name="serviceCenter" className="form-control" value={formData.serviceCenter} onChange={handleInputChange} required />
             </div>
             <div style={{ flex: '1 1 200px' }}>
-              <label>Cost ($)</label>
+              <label>Cost (₹)</label>
               <input type="number" name="cost" className="form-control" value={formData.cost} onChange={handleInputChange} required min="0" />
             </div>
             <div style={{ flex: '1 1 100%' }}>

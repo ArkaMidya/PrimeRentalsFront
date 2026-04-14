@@ -280,7 +280,7 @@ const CustomerDashboard = () => {
           {myRentals.length === 0 ? (
             <p className="mt-4 text-muted">You haven't rented any cars yet.</p>
           ) : (() => {
-            const hasActive = myRentals.some(r => r.rentalStatus === 'Active');
+            const hasCancellable = myRentals.some(r => ['Active', 'Confirmed'].includes(r.rentalStatus));
             return (
               <table style={{ width: '100%', marginTop: '1rem', borderCollapse: 'collapse' }}>
                 <thead>
@@ -290,7 +290,7 @@ const CustomerDashboard = () => {
                     <th style={{ padding: '1rem', textAlign: 'center' }}>Information</th>
                     <th style={{ padding: '1rem' }}>Payment Mode</th>
                     <th style={{ padding: '1rem', textAlign: 'center' }}>Status</th>
-                    {hasActive && <th style={{ padding: '1rem', textAlign: 'center' }}>Actions</th>}
+                    {hasCancellable && <th style={{ padding: '1rem', textAlign: 'center' }}>Action</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -317,9 +317,9 @@ const CustomerDashboard = () => {
                           {rental.rentalStatus === 'Refunded' ? 'REFUND COMPLETED' : rental.rentalStatus.replace(/_/g, ' ')}
                         </span>
                       </td>
-                      {hasActive && (
+                      {hasCancellable && (
                         <td style={{ padding: '1rem', textAlign: 'right' }}>
-                          {rental.rentalStatus === 'Active' && (
+                          {(rental.rentalStatus === 'Active' || rental.rentalStatus === 'Confirmed') && (
                             <button
                               className="btn btn-outline"
                               style={{ color: 'var(--danger)', borderColor: 'var(--danger)', padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}

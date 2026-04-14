@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import ReactDOM from 'react-dom';
 import { FaTimes, FaCreditCard, FaCheckCircle, FaSpinner, FaMapMarkerAlt, FaCalendarAlt, FaArrowLeft } from 'react-icons/fa';
 import api from '../api/axios';
+import { AuthContext } from '../context/AuthContext';
 
 const RentalBookingModal = ({ car, onClose, onSuccess }) => {
   const [step, setStep] = useState(1);
@@ -15,7 +16,7 @@ const RentalBookingModal = ({ car, onClose, onSuccess }) => {
   });
   const [isProcessing, setIsProcessing] = useState(false);
   const [totalCost, setTotalCost] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState('');
+  const [capturedPaymentMethod, setCapturedPaymentMethod] = useState(''); // Stores method from Razorpay
   const [bookedDates, setBookedDates] = useState([]);
   const [loadingBookedDates, setLoadingBookedDates] = useState(false);
 
@@ -45,32 +46,51 @@ const RentalBookingModal = ({ car, onClose, onSuccess }) => {
     return diffDays > 0 ? diffDays : 1;
   };
 
-  const handleCalculate = (e) => {
-    e.preventDefault();
-    // Construct requestedCheckOut using local time to avoid timezone offsets
-    const [coYear, coMonth, coDay] = formData.checkOutDate.split('-').map(Number);
-    const requestedCheckOut = new Date(coYear, coMonth - 1, coDay);
+  const getRequestedDates = () => {
+    if (!formData.checkOutDate || !formData.checkInDate) return null;
+    
+    // Combine date and time for robust parsing as Local Time
+    const startTimeStr = formData.pickupTime ? `${formData.checkOutDate}T${formData.pickupTime}` : `${formData.checkOutDate}T00:00`;
+    const start = new Date(startTimeStr);
+    
+    const endTimeStr = `${formData.checkInDate}T23:59:59`;
+    const end = new Date(endTimeStr);
+    
+    return { start, end };
+  };
 
-    if (formData.pickupTime) {
-      const [hours, minutes] = formData.pickupTime.split(':').map(Number);
-      requestedCheckOut.setHours(hours, minutes, 0, 0);
-    }
-
-    const [ciYear, ciMonth, ciDay] = formData.checkInDate.split('-').map(Number);
-    const requestedCheckIn = new Date(ciYear, ciMonth - 1, ciDay);
+  const validateTrip = () => {
+    const dates = getRequestedDates();
+    if (!dates) return false;
+    const { start: requestedCheckOut, end: requestedCheckIn } = dates;
 
     const now = new Date();
-    // Allow a 10-minute grace period to account for the time spent filling the form
-    const gracePeriod = 10 * 60 * 1000;
+    const nowTime = now.getTime();
+    
+    // Safety check for invalid dates
+    if (isNaN(requestedCheckOut.getTime())) {
+      alert("Invalid start date or pick-up time. Please check your selection.");
+      return false;
+    }
 
-    if (requestedCheckOut < (now - gracePeriod)) {
-      alert("Check-out date/time cannot be in the past.");
-      return;
+    const startTime = requestedCheckOut.getTime();
+    const minimumLeadTime = 60 * 1000 * 60; // 1 hour
+
+    // Case 1: Time is in the total past (even by a second)
+    if (startTime < nowTime) {
+      alert("Error: Pick-up time cannot be in the past. Please select a future date and time.");
+      return false;
+    }
+
+    // Case 2: Time is less than 1 hour in the future
+    if (startTime < (nowTime + minimumLeadTime)) {
+      alert("Policies: Pick-up time must be at least 1 hour from the current time. Please choose a later time.");
+      return false;
     }
 
     if (requestedCheckIn < requestedCheckOut) {
       alert("Return date cannot be before rental start date.");
-      return;
+      return false;
     }
 
     const hasOverlap = bookedDates.some(range => {
@@ -81,47 +101,115 @@ const RentalBookingModal = ({ car, onClose, onSuccess }) => {
 
     if (hasOverlap) {
       alert("The car is already booked for these dates. Please select other dates.");
-      return;
+      return false;
     }
+
+    return true;
+  };
+
+  const handleCalculate = (e) => {
+    e.preventDefault();
+    if (!validateTrip()) return;
 
     const days = calculateDays();
     const cost = (car.rentPerDay * days) + (70 * days);
     setTotalCost(cost);
     setStep(2);
   };
+  
+  const { user } = useContext(AuthContext);
 
-  const executeFakePayment = () => {
+  const handleRazorpayPayment = async () => {
+    if (!validateTrip()) return;
     setIsProcessing(true);
 
-    // Simulate fake processing latency
-    setTimeout(async () => {
-      try {
-        await api.post('/rentals', {
-          carId: car._id,
-          checkOutDate: formData.checkOutDate,
-          checkInDate: formData.checkInDate,
-          pickupTime: formData.pickupTime, // Added pickupTime to payload
-          phone: formData.phone,
-          sourceLocation: formData.sourceLocation,
-          destinationLocation: formData.destinationLocation,
-          totalCost: totalCost,
-          paymentMethod: paymentMethod // Track how the transaction was cleared
-        });
+    try {
+      const dates = getRequestedDates();
+      // Step 1: Create a Pending Rental
+      const rentalRes = await api.post('/rentals', {
+        carId: car._id,
+        checkOutDate: formData.checkOutDate,
+        checkInDate: formData.checkInDate,
+        startEpoch: dates.start.getTime(),
+        endEpoch: dates.end.getTime(),
+        pickupTime: formData.pickupTime,
+        phone: formData.phone,
+        sourceLocation: formData.sourceLocation,
+        destinationLocation: formData.destinationLocation,
+        totalCost: totalCost,
+        paymentMethod: 'Online'
+      });
 
-        setIsProcessing(false);
-        setStep(4); // Success Screen
+      const rental = rentalRes.data;
 
-        // Auto-close after 2 seconds
-        setTimeout(() => {
-          onSuccess();
-        }, 2000);
+      // Step 2: Create Razorpay Order
+      const orderRes = await api.post('/payments/razorpay-order', {
+        rentalId: rental._id
+      });
 
-      } catch (err) {
-        setIsProcessing(false);
-        alert(err.response?.data?.message || 'Error processing payment and rental.');
-        setStep(1); // Go back if error
-      }
-    }, 2000);
+      const order = orderRes.data;
+
+      // Step 3: Configure Razorpay Options
+      const options = {
+        key: "rzp_test_SdDxqYUcvtM9li", // This is the public test key
+        amount: order.amount,
+        currency: order.currency,
+        name: "Antigravity Car Rentals",
+        description: `Booking for ${car.make} ${car.model}`,
+        order_id: order.id,
+        handler: async function (response) {
+          try {
+            // Step 4: Verify Payment on Backend
+            const verifyRes = await api.post('/payments/verify', {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              rentalId: rental._id
+            });
+
+            if (verifyRes.data.rental) {
+              setCapturedPaymentMethod(verifyRes.data.rental.paymentMethod);
+              setStep(4); // Success Screen
+              setTimeout(() => {
+                onSuccess();
+              }, 4000);
+            }
+          } catch (err) {
+            console.error("Verification Error:", err);
+            alert("Payment verification failed. Please contact support.");
+            setStep(1);
+          } finally {
+            setIsProcessing(false);
+          }
+        },
+        prefill: {
+          name: user?.name || "",
+          email: user?.email || "",
+          contact: formData.phone || ""
+        },
+        theme: {
+          color: "#007bff"
+        },
+        modal: {
+          ondismiss: async function() {
+            try {
+              setIsProcessing(false);
+              await api.post(`/rentals/cancel-pending/${rental._id}`);
+            } catch (err) {
+              console.error("Error cancelling pending rental:", err);
+            }
+          }
+        }
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+
+    } catch (err) {
+      console.error("Payment Initiation Error:", err);
+      alert(err.response?.data?.message || 'Error initiating payment.');
+      setIsProcessing(false);
+    }
   };
 
   // Prevent body scroll when modal is open
@@ -244,91 +332,24 @@ const RentalBookingModal = ({ car, onClose, onSuccess }) => {
               <button className="btn btn-outline" style={{ flex: 1, padding: '1rem', borderRadius: '8px', cursor: 'pointer' }} onClick={() => setStep(1)} disabled={isProcessing}>
                 Back
               </button>
-              <button className="btn btn-secondary" style={{ flex: 2, background: 'var(--secondary)', color: '#fff', border: 'none', borderRadius: '8px', padding: '1rem', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold' }} onClick={() => setStep(3)}>
-                <FaCreditCard /> Proceed to Payment
+              <button className="btn btn-secondary" style={{ flex: 2, background: 'var(--secondary)', color: '#fff', border: 'none', borderRadius: '8px', padding: '1rem', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold' }} onClick={handleRazorpayPayment} disabled={isProcessing}>
+                {isProcessing ? (
+                  <><FaSpinner className="animate-spin" /> Processing...</>
+                ) : (
+                  <><FaCreditCard /> Proceed to Secure Payment</>
+                )}
               </button>
             </div>
           </div>
         )}
 
-        {/* Step 3: Payment Selection */}
-        {step === 3 && (
-          <div>
-            <h2 style={{ color: 'var(--primary)', marginBottom: '1.5rem', marginTop: '1rem', textAlign: 'center' }}>Select Payment Method</h2>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1.2rem', marginBottom: '2rem' }}>
-              {[
-                // { id: 'Cash', icon: '💵', label: 'Cash' },
-                { id: 'Credit/Debit Card', icon: '💳', label: 'Credit / Debit Card' },
-                { id: 'UPI', icon: '📱', label: 'UPI' },
-                { id: 'Net Banking', icon: '🏦', label: 'Net Banking' }
-              ].map(method => {
-                const isSelected = paymentMethod === method.id;
-                return (
-                  <div
-                    key={method.id}
-                    onClick={() => setPaymentMethod(method.id)}
-                    onMouseEnter={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.transform = 'scale(1.03)';
-                        e.currentTarget.style.boxShadow = '0 6px 15px rgba(0,0,0,0.15)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.transform = 'scale(1)';
-                        e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
-                      }
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '1rem',
-                      padding: '1.5rem',
-                      background: isSelected ? 'rgba(0, 123, 255, 0.08)' : '#ffffff',
-                      border: isSelected ? '2px solid #007bff' : '2px solid transparent',
-                      borderRadius: '12px',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s ease',
-                      boxShadow: isSelected ? '0 8px 20px rgba(0,123,255,0.2)' : '0 4px 6px rgba(0,0,0,0.1)',
-                      color: isSelected ? '#007bff' : '#333333',
-                      transform: isSelected ? 'scale(1.03)' : 'scale(1)'
-                    }}
-                  >
-                    <span style={{ fontSize: '2rem' }}>{method.icon}</span>
-                    <strong style={{ fontSize: '1.1rem', fontWeight: isSelected ? '700' : '500' }}>{method.label}</strong>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <button className="btn btn-outline" style={{ flex: 1, padding: '1rem', borderRadius: '8px', cursor: 'pointer' }} onClick={() => setStep(2)} disabled={isProcessing}>
-                Back
-              </button>
-              {paymentMethod ? (
-                <button className="btn btn-secondary" style={{ flex: 2, background: 'var(--secondary)', color: '#fff', border: 'none', borderRadius: '8px', padding: '1rem', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold' }} onClick={executeFakePayment} disabled={isProcessing}>
-                  {isProcessing ? (
-                    <><FaSpinner className="animate-spin" /> Processing Transaction...</>
-                  ) : (
-                    <><FaCheckCircle /> Pay ₹{totalCost}</>
-                  )}
-                </button>
-              ) : (
-                <div style={{ flex: 2, textAlign: 'center', padding: '1rem', color: 'var(--text-muted)' }}>
-                  Please select a payment method
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
         {/* Step 4: Success Screen */}
         {step === 4 && (
           <div className="text-center animate-fade-in" style={{ padding: '2rem 1rem' }}>
             <FaCheckCircle style={{ fontSize: '5rem', color: 'var(--success)', marginBottom: '1.5rem', display: 'block', margin: '0 auto' }} />
             <h2 style={{ color: 'var(--success)', marginBottom: '1rem' }}>Transaction Successful!</h2>
-            <p className="text-muted" style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>Paid via {paymentMethod}</p>
+            <p className="text-muted" style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>Paid via {capturedPaymentMethod}</p>
             <p className="text-muted" style={{ marginBottom: '1.5rem' }}>Payment of ₹{totalCost} received.</p>
             <p style={{ fontWeight: '500' }}>Your {car.make} {car.model} is successfully booked! Navigating back...</p>
           </div>
