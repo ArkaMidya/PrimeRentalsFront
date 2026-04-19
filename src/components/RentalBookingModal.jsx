@@ -15,10 +15,105 @@ const RentalBookingModal = ({ car, onClose, onSuccess }) => {
     destinationLocation: ''
   });
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isCalculating, setIsCalculating] = useState(false);
   const [totalCost, setTotalCost] = useState(0);
+  const [tripDistanceKm, setTripDistanceKm] = useState(0);
   const [capturedPaymentMethod, setCapturedPaymentMethod] = useState(''); // Stores method from Razorpay
   const [bookedDates, setBookedDates] = useState([]);
   const [loadingBookedDates, setLoadingBookedDates] = useState(false);
+
+  // --- Static fallback coordinates for major Indian cities ---
+  const CITY_COORDS = {
+    'kolkata': { lat: 22.5726, lon: 88.3639 },
+    'delhi': { lat: 28.6139, lon: 77.2090 },
+    'new delhi': { lat: 28.6139, lon: 77.2090 },
+    'mumbai': { lat: 19.0760, lon: 72.8777 },
+    'bengaluru': { lat: 12.9716, lon: 77.5946 },
+    'bangalore': { lat: 12.9716, lon: 77.5946 },
+    'chennai': { lat: 13.0827, lon: 80.2707 },
+    'hyderabad': { lat: 17.3850, lon: 78.4867 },
+    'ahmedabad': { lat: 23.0225, lon: 72.5714 },
+    'pune': { lat: 18.5204, lon: 73.8567 },
+    'jaipur': { lat: 26.9124, lon: 75.7873 },
+    'lucknow': { lat: 26.8467, lon: 80.9462 },
+    'surat': { lat: 21.1702, lon: 72.8311 },
+    'kanpur': { lat: 26.4499, lon: 80.3319 },
+    'nagpur': { lat: 21.1458, lon: 79.0882 },
+    'patna': { lat: 25.5941, lon: 85.1376 },
+    'indore': { lat: 22.7196, lon: 75.8577 },
+    'thane': { lat: 19.2183, lon: 72.9781 },
+    'bhopal': { lat: 23.2599, lon: 77.4126 },
+    'visakhapatnam': { lat: 17.6868, lon: 83.2185 },
+    'pimpri-chinchwad': { lat: 18.6278, lon: 73.7985 },
+    'vadodara': { lat: 22.3072, lon: 73.1812 },
+    'ghaziabad': { lat: 28.6692, lon: 77.4538 },
+    'ludhiana': { lat: 30.9010, lon: 75.8573 },
+    'agra': { lat: 27.1767, lon: 78.0081 },
+    'nashik': { lat: 19.9975, lon: 73.7898 },
+    'faridabad': { lat: 28.4089, lon: 77.3178 },
+    'meerut': { lat: 28.9845, lon: 77.7064 },
+    'rajkot': { lat: 22.3039, lon: 70.8022 },
+    'varanasi': { lat: 25.3176, lon: 82.9739 },
+    'srinagar': { lat: 34.0837, lon: 74.7973 },
+    'aurangabad': { lat: 19.8762, lon: 75.3433 },
+    'dhanbad': { lat: 23.7957, lon: 86.4304 },
+    'amritsar': { lat: 31.6340, lon: 74.8723 },
+    'navi mumbai': { lat: 19.0330, lon: 73.0297 },
+    'allahabad': { lat: 25.4358, lon: 81.8463 },
+    'prayagraj': { lat: 25.4358, lon: 81.8463 },
+    'ranchi': { lat: 23.3441, lon: 85.3096 },
+    'guwahati': { lat: 26.1445, lon: 91.7362 },
+    'coimbatore': { lat: 11.0168, lon: 76.9558 },
+    'jabalpur': { lat: 23.1815, lon: 79.9864 },
+    'vijayawada': { lat: 16.5062, lon: 80.6480 },
+    'jodhpur': { lat: 26.2389, lon: 73.0243 },
+    'madurai': { lat: 9.9252, lon: 78.1198 },
+    'raipur': { lat: 21.2514, lon: 81.6296 },
+    'kochi': { lat: 9.9312, lon: 76.2673 },
+    'cochin': { lat: 9.9312, lon: 76.2673 },
+    'bhubaneswar': { lat: 20.2961, lon: 85.8245 },
+    'chandigarh': { lat: 30.7333, lon: 76.7794 },
+    'thiruvananthapuram': { lat: 8.5241, lon: 76.9366 },
+    'trivandrum': { lat: 8.5241, lon: 76.9366 },
+  };
+
+  // --- Geocode a city name via Nominatim, with static fallback ---
+  const geocodeLocation = async (location) => {
+    const key = location.trim().toLowerCase();
+    // 1. Try Nominatim
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1&countrycodes=in`,
+        { headers: { 'Accept-Language': 'en' } }
+      );
+      const data = await res.json();
+      if (data && data.length > 0) {
+        return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+      }
+    } catch (_) {
+      console.warn('Nominatim lookup failed, using fallback dataset.');
+    }
+    // 2. Fallback to static dataset
+    for (const city in CITY_COORDS) {
+      if (key.includes(city) || city.includes(key)) {
+        return CITY_COORDS[city];
+      }
+    }
+    return null; // not found
+  };
+
+  // --- Haversine formula: returns distance in km ---
+  const haversineDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Earth's radius in km
+    const toRad = (deg) => (deg * Math.PI) / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return Math.round(R * c);
+  };
 
   React.useEffect(() => {
     if (car && car._id) {
@@ -107,14 +202,37 @@ const RentalBookingModal = ({ car, onClose, onSuccess }) => {
     return true;
   };
 
-  const handleCalculate = (e) => {
+  const handleCalculate = async (e) => {
     e.preventDefault();
     if (!validateTrip()) return;
 
-    const days = calculateDays();
-    const cost = (car.rentPerDay * days) + (70 * days);
-    setTotalCost(cost);
-    setStep(2);
+    setIsCalculating(true);
+    try {
+      const [srcCoords, dstCoords] = await Promise.all([
+        geocodeLocation(formData.sourceLocation),
+        geocodeLocation(formData.destinationLocation),
+      ]);
+
+      if (!srcCoords) {
+        alert(`Could not find location: "${formData.sourceLocation}". Please enter a valid Indian city name.`);
+        return;
+      }
+      if (!dstCoords) {
+        alert(`Could not find location: "${formData.destinationLocation}". Please enter a valid Indian city name.`);
+        return;
+      }
+
+      const dist = haversineDistance(srcCoords.lat, srcCoords.lon, dstCoords.lat, dstCoords.lon);
+      const days = calculateDays();
+      const distanceCost = dist * 5;
+      const cost = (car.rentPerDay * days) + (70 * days) + distanceCost;
+
+      setTripDistanceKm(dist);
+      setTotalCost(cost);
+      setStep(2);
+    } finally {
+      setIsCalculating(false);
+    }
   };
   
   const { user } = useContext(AuthContext);
@@ -137,6 +255,7 @@ const RentalBookingModal = ({ car, onClose, onSuccess }) => {
         sourceLocation: formData.sourceLocation,
         destinationLocation: formData.destinationLocation,
         totalCost: totalCost,
+        tripDistanceKm: tripDistanceKm,
         paymentMethod: 'Online'
       });
 
@@ -293,7 +412,9 @@ const RentalBookingModal = ({ car, onClose, onSuccess }) => {
               )}
 
               <div className="text-center mt-4">
-                <button type="submit" className="btn primary-btn" style={{ background: 'var(--primary)', color: '#000', border: 'none', borderRadius: '8px', width: '100%', fontSize: '1.1rem', padding: '1rem', cursor: 'pointer', fontWeight: 'bold' }}>Calculate Rental Cost</button>
+                <button type="submit" className="btn primary-btn" disabled={isCalculating} style={{ background: 'var(--primary)', color: '#000', border: 'none', borderRadius: '8px', width: '100%', fontSize: '1.1rem', padding: '1rem', cursor: isCalculating ? 'not-allowed' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', opacity: isCalculating ? 0.8 : 1 }}>
+                  {isCalculating ? (<><FaSpinner className="animate-spin" /> Calculating Distance...</>) : 'Calculate Rental Cost'}
+                </button>
               </div>
             </form>
           </div>
@@ -317,8 +438,14 @@ const RentalBookingModal = ({ car, onClose, onSuccess }) => {
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <span>Base Rent (₹{car.rentPerDay}/day):</span> <strong>₹{car.rentPerDay * calculateDays()}</strong>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <span>Servicing Charge (₹70/day):</span> <strong>₹{70 * calculateDays()}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span>Trip Distance:</span> <strong>{tripDistanceKm} km</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                <span>Distance Charge (₹5/km):</span> <strong>₹{tripDistanceKm * 5}</strong>
               </div>
 
               <hr style={{ borderColor: 'rgba(255,255,255,0.1)', marginBottom: '1rem' }} />
