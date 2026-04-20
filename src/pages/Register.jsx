@@ -49,7 +49,7 @@ const Register = () => {
 
   return (
     <div className="auth-simple-wrapper animate-fade-in" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'center', minHeight: 'calc(100vh - 70px)', padding: '1rem' }}>
-      <div className="auth-glass-card" style={{ width: '100%', maxWidth: '440px', background: 'var(--glass-bg)', backdropFilter: 'blur(12px)', marginTop: '.5rem', marginBottom: '1.5rem' }}>
+      <div className="auth-glass-card" style={{ width: '100%', maxWidth: '440px', background: 'var(--glass-bg)', backdropFilter: 'blur(12px)', marginBottom: '3rem' }}>
         <div style={{ marginBottom: '1.5rem' }}>
           <div style={{ color: 'var(--secondary)', fontWeight: 'bold', fontSize: '0.9rem', letterSpacing: '1px', textTransform: 'uppercase' }}>
             {step === 1 ? 'Step 1: Details' : 'Step 2: Verification'}

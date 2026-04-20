@@ -35,7 +35,7 @@ const Navbar = () => {
         {user ? (
           <>
             <span className="welcome-msg" style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-              Welcome, <strong>{user.name}</strong>
+              Welcome <strong>{user.name}</strong>
             </span>
             <Link to={user.role === 'Admin' ? "/admin" : "/customer"} className="btn btn-outline" style={{ border: 'none' }} onClick={() => setIsMobileMenuOpen(false)}>
               Dashboard

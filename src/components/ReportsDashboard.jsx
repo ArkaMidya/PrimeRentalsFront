@@ -204,7 +204,7 @@ const ReportsDashboard = ({ cars = [], rentals = [] }) => {
   };
 
   return (
-    <div className="animate-fade-in" style={{ padding: '0 0 2rem 0' }}>
+    <div className="animate-fade-in" style={{ padding: '2rem 0 2rem 0' }}>
       
       {/* 1. TOP KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
