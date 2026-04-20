@@ -22,11 +22,11 @@ const Login = () => {
 
   return (
     <div className="auth-split-container animate-fade-in">
-      {/* Brand Sidebar */}
+      {/* Brand Sidebar - Hidden on Mobile */}
       <div className="auth-sidebar">
         <div className="auth-sidebar-content">
           <Link to="/" className="logo-text">LUXE DRIVE</Link>
-          <h1 style={{ fontSize: '3.5rem', lineHeight: '1.2', marginBottom: '1.5rem', fontWeight: '800' }}>
+          <h1 style={{ fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', lineHeight: '1.2', marginBottom: '1.5rem', fontWeight: '800' }}>
             Drive the <span style={{ color: 'var(--secondary)' }}>Future</span> Today.
           </h1>
           <p style={{ fontSize: '1.1rem', color: 'rgba(255,255,255,0.7)', lineHeight: '1.8' }}>
@@ -38,16 +38,15 @@ const Login = () => {
       {/* Form Side */}
       <div className="auth-form-side">
         <div className="auth-glass-card">
-          <div className="auth-tabs" style={{ marginBottom: '1.5rem' }}>
-            <div className="auth-tab active">Welcome Back</div>
-            {/* <Link to="/register" className="auth-tab">Register</Link> */}
+          <div style={{ marginBottom: '1.5rem' }}>
+            <div style={{ color: 'var(--primary)', fontWeight: 'bold', fontSize: '0.9rem', letterSpacing: '1px', textTransform: 'uppercase' }}>Welcome Back</div>
           </div>
 
-          <h2 style={{ marginBottom: '0.25rem', fontSize: '1.8rem', fontWeight: '800' }}>Sign In</h2>
+          <h2 style={{ marginBottom: '0.5rem', fontSize: '1.8rem', fontWeight: '800' }}>Sign In</h2>
           <p className="text-muted" style={{ marginBottom: '1.5rem', fontSize: '0.9rem' }}>Enter credentials to continue.</p>
 
           {error && (
-            <div className="badge-danger" style={{ width: '100%', padding: '0.5rem', borderRadius: '12px', marginBottom: '1rem', textAlign: 'center', fontSize: '0.85rem' }}>
+            <div className="badge-danger" style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', marginBottom: '1.5rem', textAlign: 'center', fontSize: '0.85rem' }}>
               {error}
             </div>
           )}
@@ -63,7 +62,7 @@ const Login = () => {
                 onChange={e => setEmail(e.target.value)}
                 required
                 className="form-control"
-                style={{ background: 'rgba(255,255,255,0.05)', height: '48px', paddingLeft: '1rem' }}
+                style={{ background: 'rgba(255,255,255,0.05)', height: '48px' }}
               />
             </div>
 
@@ -77,21 +76,21 @@ const Login = () => {
                 onChange={e => setPassword(e.target.value)}
                 required
                 className="form-control"
-                style={{ background: 'rgba(255,255,255,0.05)', height: '48px', paddingLeft: '1rem' }}
+                style={{ background: 'rgba(255,255,255,0.05)', height: '48px' }}
               />
             </div>
             
-            <div style={{ textAlign: 'right', marginBottom: '1.4rem', marginTop: '-0.8rem' }}>
+            <div style={{ textAlign: 'right', marginBottom: '1.8rem', marginTop: '-0.8rem' }}>
               <Link to="/forgot-password" style={{ color: 'var(--primary)', fontSize: '0.85rem', fontWeight: '600' }}>Forgot password?</Link>
             </div>
 
-            <button type="submit" className="btn btn-primary btn-glow" style={{ width: '100%', height: '52px', borderRadius: '14px', fontSize: '1.1rem', fontWeight: '700', marginTop: '0.5rem' }}>
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', height: '52px', borderRadius: '14px', fontSize: '1.1rem', fontWeight: '700' }}>
               Login Now <FaArrowRight style={{ marginLeft: '0.75rem' }} />
             </button>
           </form>
 
-          <p style={{ textAlign: 'center', marginTop: '2.5rem', color: 'rgba(255,255,255,0.6)' }}>
-            Are you new here? <Link to="/register" style={{ color: 'var(--primary)', fontWeight: '700' }}>Create an Account</Link>
+          <p style={{ textAlign: 'center', marginTop: '2.5rem', fontSize: '0.9rem', color: 'rgba(255,255,255,0.6)' }}>
+            New here? <Link to="/register" style={{ color: 'var(--primary)', fontWeight: '700' }}>Create Account</Link>
           </p>
         </div>
       </div>
