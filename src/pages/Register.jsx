@@ -48,23 +48,8 @@ const Register = () => {
   };
 
   return (
-    <div className="auth-split-container animate-fade-in">
-      {/* Brand Sidebar - Hidden on Mobile */}
-      <div className="auth-sidebar">
-        <div className="auth-sidebar-content">
-          <Link to="/" className="logo-text">LUXE DRIVE</Link>
-          <h1 style={{ fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', lineHeight: '1.2', marginBottom: '1.5rem', fontWeight: '800' }}>
-            Begin Your <span style={{ color: 'var(--secondary)' }}>Journey</span>.
-          </h1>
-          <p style={{ fontSize: '1.1rem', color: 'rgba(255,255,255,0.7)', lineHeight: '1.8' }}>
-            Join our exclusive community of travelers. Access our premium fleet with a single account and experience the road like never before.
-          </p>
-        </div>
-      </div>
-
-      {/* Form Side */}
-      <div className="auth-form-side">
-        <div className="auth-glass-card">
+    <div className="auth-simple-wrapper animate-fade-in" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 70px)', padding: '1rem' }}>
+      <div className="auth-glass-card" style={{ width: '100%', maxWidth: '440px', background: 'var(--glass-bg)', backdropFilter: 'blur(12px)' }}>
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ color: 'var(--secondary)', fontWeight: 'bold', fontSize: '0.9rem', letterSpacing: '1px', textTransform: 'uppercase' }}>
               {step === 1 ? 'Step 1: Details' : 'Step 2: Verification'}
@@ -137,7 +122,6 @@ const Register = () => {
           </p>
         </div>
       </div>
-    </div>
   );
 };
 
