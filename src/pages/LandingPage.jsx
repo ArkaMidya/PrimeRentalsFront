@@ -70,7 +70,7 @@ const LandingPage = () => {
     }
   ];
 
-  return (
+
   return (
     <div className="landing-wrapper" style={{ overflowX: 'hidden' }}>
 
