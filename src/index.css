@@ -520,22 +520,14 @@ select option {
 }
 
 /* Auth Page Split Layout Enhancements */
+/* Auth Page Split Layout Enhancements */
 .auth-split-container {
   display: flex;
   min-height: 100vh;
   width: 100%;
   overflow: hidden;
   background: var(--bg-color);
-}
-
-@media (max-width: 1024px) {
-  .auth-sidebar {
-    display: none;
-  }
-  .auth-form-side {
-    width: 100%;
-    padding: 1rem;
-  }
+  position: relative;
 }
 
 .auth-sidebar {
@@ -548,7 +540,7 @@ select option {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 3rem; /* Reduced padding */
+  padding: 3rem;
 }
 
 .auth-sidebar::after {
@@ -556,6 +548,35 @@ select option {
   position: absolute;
   inset: 0;
   background: linear-gradient(135deg, rgba(79, 70, 229, 0.4), rgba(15, 23, 42, 0.85));
+}
+
+@media (max-width: 1024px) {
+  .auth-split-container {
+    background-image: url('https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=2070&auto=format&fit=crop');
+    background-size: cover;
+    background-position: center;
+  }
+  
+  .auth-split-container::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.9); /* Darker overlay for better form contrast on mobile */
+    backdrop-filter: blur(8px);
+    z-index: 1;
+  }
+
+  .auth-sidebar {
+    display: none;
+  }
+
+  .auth-form-side {
+    width: 100%;
+    padding: 1rem;
+    z-index: 2;
+    position: relative;
+    background: transparent;
+  }
 }
 
 .auth-sidebar-content {
