@@ -22,6 +22,7 @@
   --radius-lg: 20px;
   --radius-md: 12px;
   --radius-sm: 8px;
+  --nav-height: 70px;
 }
 
 * {
@@ -157,7 +158,8 @@ a:hover {
   }
 
   .welcome-msg {
-    display: none; /* Hide welcome name on mobile for space */
+    display: none;
+    /* Hide welcome name on mobile for space */
   }
 
   .nav-links .btn {
@@ -395,7 +397,7 @@ select option {
 
 .main-content {
   flex: 1;
-  padding: 1rem;
+  padding-top: var(--nav-height);
   width: 100%;
 }
 
@@ -403,8 +405,6 @@ select option {
 .hero-section {
   position: relative;
   min-height: 85vh;
-  margin-top: 70px;
-  /* Account for fixed navbar */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -543,7 +543,7 @@ select option {
 /* Auth Page Layouts */
 .auth-split-container {
   display: flex;
-  height: calc(100vh - 70px);
+  height: calc(100vh - var(--nav-height));
   width: 100vw;
   margin-left: calc(-50vw + 50%);
   margin-right: calc(-50vw + 50%);
@@ -756,6 +756,125 @@ select option {
   background: linear-gradient(to right, var(--primary), var(--secondary));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+/* Dashboard Layouts */
+.dashboard-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+.filter-header {
+  margin-bottom: 2rem;
+}
+
+.filter-toolbar {
+  padding: 1.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  border-radius: 24px;
+}
+
+.search-container {
+  position: relative;
+  width: 100%;
+}
+
+.search-icon {
+  position: absolute;
+  left: 1.2rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 1.1rem;
+}
+
+.filter-search-input {
+  padding: 0.8rem 1rem 0.8rem 3rem !important;
+  font-size: 1rem;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-radius: 14px !important;
+}
+
+.filter-options {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.filter-icon {
+  font-size: 1rem;
+}
+
+.filter-icon.primary {
+  color: var(--primary);
+}
+
+.filter-icon.secondary {
+  color: var(--secondary);
+}
+
+.filter-icon.success {
+  color: var(--success);
+}
+
+.filter-icon.warning {
+  color: var(--warning);
+}
+
+.filter-select {
+  padding: 0.5rem 0.8rem !important;
+  font-size: 0.9rem;
+  width: auto;
+  min-width: 140px;
+  background: transparent !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.filter-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border-color);
+}
+
+.filter-reset-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  margin-left: auto;
+  color: var(--danger) !important;
+  border-color: rgba(239, 68, 68, 0.2) !important;
+}
+
+@media (max-width: 768px) {
+  .filter-options {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .filter-divider {
+    display: none;
+  }
+
+  .filter-item,
+  .filter-select {
+    width: 100%;
+  }
+
+  .filter-reset-btn {
+    margin-left: 0;
+    width: 100%;
+  }
 }
 
 /* Utility Classes */
